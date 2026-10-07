@@ -5,23 +5,43 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulador</title>
+    <script src="script.js"></script>
 </head>
 <body>
     <h1>Simulador De Notas</h1>
     <p>Bienvenido al simulador. Aquí puedes realizar diversas simulaciones.</p>
-    <form>
+    <form id="formulario_notas">
         <h2>Notas Primer Unidad:</h2>
         <label for="nota1">Parcial 1:</label>
         <input type="number" id="nota1" name="nota1" min="0" max="100">
+        <label for="peso1">Peso 1:</label>
+        <input type="number" id="peso1" name="peso1" min="0" max="100">
+        <label for="nota2">Continua 1:</label>
+        <input type="number" id="nota2" name="nota2" min="0" max="100">
+        <label for="peso2">Peso 2:</label>
+        <input type="number" id="peso2" name="peso2" min="0" max="100">
         <br>
         <h2>Notas Segunda Unidad:</h2>
-        <label for="nota2">Parcial 2:</label>
-        <input type="number" id="nota2" name="nota2" min="0" max="100">
+        <label for="nota3">Parcial 2:</label>
+        <input type="number" id="nota3" name="nota3" min="0" max="100">
+        <label for="peso3">Peso 3:</label>
+        <input type="number" id="peso3" name="peso3" min="0" max="100">
+        <label for="nota4">Continua 2:</label>
+        <input type="number" id="nota4" name="nota4" min="0" max="100">
+        <label for="peso4">Peso 4:</label>
+        <input type="number" id="peso4" name="peso4" min="0" max="100">
         <br>
         <h2>Notas Tercera Unidad:</h2>
-        <label for="nota3">Parcial 3:</label>
-        <input type="number" id="nota3" name="nota3" min="0" max="100">
+        <label for="nota5">Parcial 3:</label>
+        <input type="number" id="nota5" name="nota5" min="0" max="100">
+        <label for="peso5">Peso 5:</label>
+        <input type="number" id="peso5" name="peso5" min="0" max="100">
+        <label for="nota6">Continua 3:</label>
+        <input type="number" id="nota6" name="nota6" min="0" max="100">
+        <label for="peso6">Peso 6:</label>
+        <input type="number" id="peso6" name="peso6" min="0" max="100">
         <br>
         <input type="submit" value="Calcular Promedio">
     </form>
+    <p>Resultado Obtenido: <span id="resultado">0</span></p>
 </body>

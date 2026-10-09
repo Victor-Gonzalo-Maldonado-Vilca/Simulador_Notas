@@ -286,28 +286,28 @@ function calcularResumenCurso(curso) {
 
     if (notaRequerida <= 0) {
         badgeClass = 'aprobado';
-        badgeTexto = '¡Meta asegurada!';
-        detalle = `Ya aseguraste tu meta de ${notaMeta.toFixed(1)}. Nota asegurada: ${peorCaso.toFixed(2)}.`;
+        badgeTexto = 'Meta asegurada';
+        detalle = `Puntaje suficiente para alcanzar la meta de ${notaMeta.toFixed(1)}. Nota final mínima garantizada: ${peorCaso.toFixed(2)}.`;
     } else if (notaRequerida <= 10.5) {
         badgeClass = 'accesible';
-        badgeTexto = `Requiere: ${notaRequerida.toFixed(2)}`;
-        detalle = `Meta accesible: necesitas ${notaRequerida.toFixed(2)} en promedio pendiente.`;
+        badgeTexto = `Req. ${notaRequerida.toFixed(2)}`;
+        detalle = `Exigencia regular: se requiere promediar ${notaRequerida.toFixed(2)} en las evaluaciones pendientes.`;
     } else if (notaRequerida <= 14.0) {
         badgeClass = 'moderado';
-        badgeTexto = `Requiere: ${notaRequerida.toFixed(2)}`;
-        detalle = `Alcanzable con estudio: requieres ${notaRequerida.toFixed(2)} en lo pendiente.`;
+        badgeTexto = `Req. ${notaRequerida.toFixed(2)}`;
+        detalle = `Exigencia moderada: se requiere promediar ${notaRequerida.toFixed(2)} en las evaluaciones pendientes.`;
     } else if (notaRequerida <= 17.0) {
         badgeClass = 'exigente';
-        badgeTexto = `Exigente: ${notaRequerida.toFixed(2)}`;
-        detalle = `Exigente: necesitas ${notaRequerida.toFixed(2)} en las notas pendientes.`;
+        badgeTexto = `Alta exigencia: ${notaRequerida.toFixed(2)}`;
+        detalle = `Alta exigencia: se requiere una calificación promedio de ${notaRequerida.toFixed(2)} en lo pendiente.`;
     } else if (notaRequerida <= 20.0) {
         badgeClass = 'critico';
         badgeTexto = `Crítico: ${notaRequerida.toFixed(2)}`;
-        detalle = `Alerta: requieres ${notaRequerida.toFixed(2)} (casi perfecto) en lo pendiente.`;
+        detalle = `Exigencia crítica: se requiere promediar ${notaRequerida.toFixed(2)} en las evaluaciones pendientes.`;
     } else {
         badgeClass = 'desaprobado';
-        badgeTexto = 'Inalcanzable';
-        detalle = `Inalcanzable (requiere ${notaRequerida.toFixed(2)}). Máximo posible: ${mejorCaso.toFixed(2)}.`;
+        badgeTexto = 'Fuera de rango';
+        detalle = `Meta inalcanzable (requeriría ${notaRequerida.toFixed(2)}). Calificación máxima alcanzable: ${mejorCaso.toFixed(2)}.`;
     }
 
     return {

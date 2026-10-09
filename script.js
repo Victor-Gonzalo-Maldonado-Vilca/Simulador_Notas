@@ -335,14 +335,14 @@ function calcularOSimular(mostrarAlertas = true) {
 
         estadoElement.className = "result-status-pill";
         if (promedio >= notaMeta) {
-            estadoElement.textContent = `✓ Condición: Aprobado (Meta: ${notaMeta.toFixed(1)})`;
+            estadoElement.textContent = `Condición: Aprobado (Meta: ${notaMeta.toFixed(1)})`;
             estadoElement.classList.add('aprobado');
         } else {
-            estadoElement.textContent = `✕ Condición: Desaprobado (Meta: ${notaMeta.toFixed(1)})`;
+            estadoElement.textContent = `Condición: Desaprobado (Meta: ${notaMeta.toFixed(1)})`;
             estadoElement.classList.add('desaprobado');
         }
 
-        resultadoMensaje.innerHTML = `Completaste las 6 evaluaciones de <strong>${cursoActual ? cursoActual.nombre : 'este curso'}</strong>. Tu promedio final ponderado es de <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
+        resultadoMensaje.innerHTML = `Evaluación completa de <strong>${cursoActual ? cursoActual.nombre : 'la asignatura'}</strong>. El promedio final ponderado obtenido es <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
 
         metricasSecundarias.style.display = 'grid';
         metricAcumulado.textContent = promedio.toFixed(2);
@@ -363,7 +363,7 @@ function calcularOSimular(mostrarAlertas = true) {
 
     if (pesoPendiente === 0) {
         if (mostrarAlertas) {
-            mostrarAlerta("Las evaluaciones pendientes tienen peso 0%. Asigna porcentajes para calcular cuánto necesitas.", "warning");
+            mostrarAlerta("Las evaluaciones pendientes tienen peso 0%. Asigna porcentajes para calcular la proyección requerida.", "warning");
         }
         return;
     }
@@ -382,41 +382,41 @@ function calcularOSimular(mostrarAlertas = true) {
         : `en promedio en las ${pendientes.length} evaluaciones pendientes (${nombresPendientes})`;
 
     resultadoTipoEtiqueta.textContent = pendientes.length === 1 
-        ? `Nota Necesaria en ${pendientes[0].nombre}` 
-        : `Nota Promedio Requerida en Pendientes`;
+        ? `Calificación requerida en ${pendientes[0].nombre}` 
+        : `Calificación promedio requerida en pendientes`;
 
     estadoElement.className = "result-status-pill";
 
     if (notaRequerida <= 0) {
         resultadoElement.textContent = "0.00";
-        estadoElement.textContent = "★ ¡Aprobación Asegurada!";
+        estadoElement.textContent = "Meta asegurada (Aprobación garantizada)";
         estadoElement.classList.add('aprobado');
-        resultadoMensaje.innerHTML = `¡Felicitaciones! Con tus notas acumuladas en <strong>${cursoActual ? cursoActual.nombre : 'el curso'}</strong> ya alcanzaste la meta de <strong>${notaMeta.toFixed(1)}</strong>. Incluso sacando 0.00 en lo que falta, tu nota mínima final asegurada es de <strong>${peorCasoMin.toFixed(2)}</strong>.`;
+        resultadoMensaje.innerHTML = `Con las calificaciones registradas en <strong>${cursoActual ? cursoActual.nombre : 'la asignatura'}</strong>, el puntaje acumulado es suficiente para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>. Tu promedio final mínimo garantizado es <strong>${peorCasoMin.toFixed(2)}</strong>.`;
     } else if (notaRequerida <= 10.5) {
         resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `✓ Meta Muy Accesible (${notaRequerida.toFixed(2)})`;
+        estadoElement.textContent = `Exigencia regular (${notaRequerida.toFixed(2)})`;
         estadoElement.classList.add('accesible');
-        resultadoMensaje.innerHTML = `Para alcanzar tu meta de <strong>${notaMeta.toFixed(1)}</strong>, necesitas obtener al menos <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
+        resultadoMensaje.innerHTML = `Para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>, se requiere una calificación mínima de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
     } else if (notaRequerida <= 14.0) {
         resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `✓ Meta Alcanzable (${notaRequerida.toFixed(2)})`;
+        estadoElement.textContent = `Exigencia moderada (${notaRequerida.toFixed(2)})`;
         estadoElement.classList.add('moderado');
-        resultadoMensaje.innerHTML = `Requieres una calificación de al menos <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones} para aprobar con <strong>${notaMeta.toFixed(1)}</strong>.`;
+        resultadoMensaje.innerHTML = `Para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>, se requiere promediar <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
     } else if (notaRequerida <= 17.0) {
         resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `⚠ Meta Exigente (${notaRequerida.toFixed(2)})`;
+        estadoElement.textContent = `Alta exigencia (${notaRequerida.toFixed(2)})`;
         estadoElement.classList.add('exigente');
-        resultadoMensaje.innerHTML = `Deberás esforzarte al máximo: necesitas una calificación promedio de al menos <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones} para alcanzar <strong>${notaMeta.toFixed(1)}</strong>.`;
+        resultadoMensaje.innerHTML = `Para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>, se requiere una calificación promedio de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
     } else if (notaRequerida <= 20.0) {
         resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `🔥 Nivel Crítico (${notaRequerida.toFixed(2)})`;
+        estadoElement.textContent = `Exigencia crítica (${notaRequerida.toFixed(2)})`;
         estadoElement.classList.add('critico');
-        resultadoMensaje.innerHTML = `¡Situación muy ajustada! Necesitas una nota casi perfecta de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones} para alcanzar tu meta de <strong>${notaMeta.toFixed(1)}</strong>.`;
+        resultadoMensaje.innerHTML = `Condición de alta rigurosidad: se requiere una calificación de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones} para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>.`;
     } else {
         resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = "✕ Meta Inalcanzable";
+        estadoElement.textContent = "Condición fuera de rango (> 20.00)";
         estadoElement.classList.add('desaprobado');
-        resultadoMensaje.innerHTML = `Lamentablemente la meta de <strong>${notaMeta.toFixed(1)}</strong> es matemáticamente inalcanzable, ya que requerirías <strong>${notaRequerida.toFixed(2)}</strong> (el límite es 20). Tu nota máxima posible sacando 20 en todo lo restante es <strong>${mejorCasoMax.toFixed(2)}</strong>.`;
+        resultadoMensaje.innerHTML = `La meta de <strong>${notaMeta.toFixed(1)}</strong> no es matemáticamente alcanzable en la escala vigesimal, ya que requeriría <strong>${notaRequerida.toFixed(2)}</strong>. El promedio máximo alcanzable con nota 20 en lo pendiente es <strong>${mejorCasoMax.toFixed(2)}</strong>.`;
     }
 
     metricasSecundarias.style.display = 'grid';

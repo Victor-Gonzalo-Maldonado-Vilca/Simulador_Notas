@@ -1,5 +1,5 @@
 // ==========================================================================
-// SIMULADOR DE NOTAS ACADÉMICO - MODO PREDICTIVO "¿CUÁNTO NECESITO PARA APROBAR?"
+// SIMULADOR DE NOTAS ACADÉMICO - MODO PREDICTIVO Y MULTICURSO
 // ==========================================================================
 
 // Elementos principales del DOM
@@ -16,6 +16,13 @@ const btnLimpiar = document.getElementById('btn-limpiar');
 const notaMetaInput = document.getElementById('nota-meta');
 const btnPresetUnsa = document.getElementById('preset-unsa');
 const btnPresetIguales = document.getElementById('preset-iguales');
+
+// Elementos de navegación y contexto de curso
+const selectorCursoActivo = document.getElementById('selector-curso-activo');
+const tituloCursoActual = document.getElementById('titulo-curso-actual');
+const subtituloCursoActual = document.getElementById('subtitulo-curso-actual');
+const badgeCodigoCurso = document.getElementById('badge-codigo-curso');
+const autosaveTag = document.getElementById('autosave-tag');
 
 // Métricas secundarias
 const metricasSecundarias = document.getElementById('metricas-secundarias');
@@ -35,9 +42,139 @@ const EVALUACIONES = [
     { id: 6, nombre: 'Evaluación Continua 3', unidad: 'Unidad 03', notaId: 'nota6', pesoId: 'peso6' }
 ];
 
+let cursoActual = null;
 let alertaTimeout = null;
+let autosaveTimeout = null;
 
-// Función para mostrar alertas en la interfaz
+// =========================================================================
+// GESTIÓN Y CARGA DE CURSO
+// =========================================================================
+
+function inicializarCurso() {
+    const cursos = obtenerCursos();
+    if (!cursos || cursos.length === 0) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // Identificar curso solicitado por URL o por activo en localStorage
+    const params = new URLSearchParams(window.location.search);
+    const idParam = params.get('id');
+    const idActivo = obtenerCursoActivoId();
+
+    let seleccionado = null;
+    if (idParam) {
+        seleccionado = obtenerCursoPorId(idParam);
+    }
+    if (!seleccionado && idActivo) {
+        seleccionado = obtenerCursoPorId(idActivo);
+    }
+    if (!seleccionado) {
+        seleccionado = cursos[0];
+    }
+
+    cursoActual = seleccionado;
+    establecerCursoActivoId(cursoActual.id);
+
+    // Llenar selector de cursos
+    poblarSelectorCursos(cursos, cursoActual.id);
+
+    // Cargar datos del curso en la interfaz
+    cargarDatosCursoEnFormulario(cursoActual);
+}
+
+function poblarSelectorCursos(cursos, idSeleccionado) {
+    if (!selectorCursoActivo) return;
+    selectorCursoActivo.innerHTML = '';
+
+    cursos.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = `${c.codigo ? `[${c.codigo}] ` : ''}${c.nombre}`;
+        if (c.id === idSeleccionado) {
+            option.selected = true;
+        }
+        selectorCursoActivo.appendChild(option);
+    });
+
+    selectorCursoActivo.addEventListener('change', (e) => {
+        const nuevoId = e.target.value;
+        const nuevoCurso = obtenerCursoPorId(nuevoId);
+        if (nuevoCurso) {
+            cursoActual = nuevoCurso;
+            establecerCursoActivoId(nuevoId);
+            window.history.replaceState(null, '', `simulador.html?id=${nuevoId}`);
+            cargarDatosCursoEnFormulario(cursoActual);
+        }
+    });
+}
+
+function cargarDatosCursoEnFormulario(curso) {
+    // Encabezados
+    if (tituloCursoActual) tituloCursoActual.textContent = curso.nombre;
+    if (subtituloCursoActual) {
+        subtituloCursoActual.textContent = `Código: ${curso.codigo || 'UNSA'} • Créditos: ${curso.creditos || 3} • Simula las notas requeridas para aprobar.`;
+    }
+    if (badgeCodigoCurso) {
+        badgeCodigoCurso.textContent = `${curso.codigo || 'UNSA'} • ${curso.creditos || 3} Créditos`;
+    }
+
+    // Nota Meta
+    if (notaMetaInput) {
+        notaMetaInput.value = (curso.notaMeta !== undefined && curso.notaMeta !== null) ? curso.notaMeta : 10.5;
+    }
+
+    // Cargar notas y pesos
+    const notas = curso.notas || {};
+    const pesos = curso.pesos || {};
+
+    EVALUACIONES.forEach(ev => {
+        const inputNota = document.getElementById(ev.notaId);
+        const inputPeso = document.getElementById(ev.pesoId);
+
+        if (inputNota) {
+            inputNota.value = (notas[ev.notaId] !== undefined && notas[ev.notaId] !== null) ? notas[ev.notaId] : '';
+        }
+        if (inputPeso) {
+            inputPeso.value = (pesos[ev.pesoId] !== undefined && pesos[ev.pesoId] !== null) ? pesos[ev.pesoId] : '';
+        }
+    });
+
+    actualizarContadores();
+    calcularOSimular(false);
+}
+
+function autoGuardarCurso() {
+    if (!cursoActual) return;
+
+    cursoActual.notaMeta = parseFloat(notaMetaInput.value) || 10.5;
+    cursoActual.notas = cursoActual.notas || {};
+    cursoActual.pesos = cursoActual.pesos || {};
+
+    EVALUACIONES.forEach(ev => {
+        const inputNota = document.getElementById(ev.notaId);
+        const inputPeso = document.getElementById(ev.pesoId);
+
+        cursoActual.notas[ev.notaId] = inputNota.value.trim();
+        cursoActual.pesos[ev.pesoId] = inputPeso.value.trim();
+    });
+
+    guardarCurso(cursoActual);
+
+    // Animación visual de guardado
+    if (autosaveTag) {
+        autosaveTag.classList.add('saving');
+        if (autosaveTimeout) clearTimeout(autosaveTimeout);
+        autosaveTimeout = setTimeout(() => {
+            autosaveTag.classList.remove('saving');
+        }, 600);
+    }
+}
+
+// =========================================================================
+// ALERTAS Y CONTADORES
+// =========================================================================
+
 function mostrarAlerta(mensaje, tipo = 'warning') {
     if (alertaBox && alertaMensaje) {
         if (alertaTimeout) clearTimeout(alertaTimeout);
@@ -51,7 +188,6 @@ function mostrarAlerta(mensaje, tipo = 'warning') {
     }
 }
 
-// Actualizar contadores de pesos y notas completadas
 function actualizarContadores() {
     let sumaPesos = 0;
     let notasLlenadas = 0;
@@ -66,7 +202,6 @@ function actualizarContadores() {
         }
     });
 
-    // Actualizar badge de pesos
     if (totalPesosBadge) {
         totalPesosBadge.textContent = `${sumaPesos.toFixed(sumaPesos % 1 === 0 ? 0 : 1)}%`;
         totalPesosBadge.classList.remove('valid', 'warning');
@@ -77,7 +212,6 @@ function actualizarContadores() {
         }
     }
 
-    // Actualizar badge de notas
     if (totalNotasBadge) {
         totalNotasBadge.textContent = `${notasLlenadas} / 6`;
         totalNotasBadge.classList.remove('valid', 'warning');
@@ -91,7 +225,7 @@ function actualizarContadores() {
     return { sumaPesos, notasLlenadas };
 }
 
-// Aplicar plantilla de pesos
+// Plantillas de pesos
 function aplicarPlantillaPesos(pesos) {
     EVALUACIONES.forEach((ev, index) => {
         const inputPeso = document.getElementById(ev.pesoId);
@@ -100,10 +234,10 @@ function aplicarPlantillaPesos(pesos) {
         }
     });
     actualizarContadores();
+    autoGuardarCurso();
     calcularOSimular(false);
 }
 
-// Plantilla UNSA típica: 30% Fase 1 (15%/15%), 30% Fase 2 (15%/15%), 40% Fase 3 (20%/20%)
 if (btnPresetUnsa) {
     btnPresetUnsa.addEventListener('click', () => {
         aplicarPlantillaPesos([15, 15, 15, 15, 20, 20]);
@@ -111,7 +245,6 @@ if (btnPresetUnsa) {
     });
 }
 
-// Plantilla equitativa (~16.7% cada una)
 if (btnPresetIguales) {
     btnPresetIguales.addEventListener('click', () => {
         aplicarPlantillaPesos([16.67, 16.67, 16.67, 16.67, 16.66, 16.66]);
@@ -119,7 +252,10 @@ if (btnPresetIguales) {
     });
 }
 
-// Función principal de cálculo y simulación predictiva
+// =========================================================================
+// MOTOR DE CÁLCULO PREDICTIVO
+// =========================================================================
+
 function calcularOSimular(mostrarAlertas = true) {
     const metaInputVal = parseFloat(notaMetaInput.value);
     const notaMeta = isNaN(metaInputVal) ? 10.5 : metaInputVal;
@@ -162,13 +298,11 @@ function calcularOSimular(mostrarAlertas = true) {
         }
     });
 
-    if (notasFueraDeRango) {
-        if (mostrarAlertas) {
-            mostrarAlerta("Atención: Las calificaciones deben estar en la escala de 0 a 20.", "danger");
-        }
+    if (notasFueraDeRango && mostrarAlertas) {
+        mostrarAlerta("Atención: Las calificaciones deben estar en la escala de 0 a 20.", "danger");
     }
 
-    // Si no hay datos ingresados
+    // Sin datos ingresados
     if (completadas.length === 0 && sumaPesos === 0) {
         if (mostrarAlertas) {
             mostrarAlerta("Por favor, ingresa tus notas y los pesos porcentuales correspondientes.");
@@ -177,23 +311,21 @@ function calcularOSimular(mostrarAlertas = true) {
         return;
     }
 
-    // Si los pesos no están definidos
+    // Sin pesos asignados
     if (sumaPesos === 0) {
         if (mostrarAlertas) {
-            mostrarAlerta("Debes asignar los porcentajes (%) de las evaluaciones para realizar el cálculo. Puedes usar los botones de plantillas arriba.", "danger");
+            mostrarAlerta("Debes asignar los porcentajes (%) de las evaluaciones para realizar el cálculo. Puedes usar las plantillas de arriba.", "danger");
         }
         return;
     }
 
-    // Efecto visual de rebote suave en el número
+    // Animación visual
     resultadoElement.style.transform = "scale(1.08)";
     setTimeout(() => {
         resultadoElement.style.transform = "scale(1)";
     }, 180);
 
-    // =========================================================================
-    // CASO 1: TODAS LAS NOTAS ESTÁN INGRESADAS (Promedio Final Completo)
-    // =========================================================================
+    // CASO 1: TODAS LAS NOTAS COMPLETAS
     if (pendientes.length === 0) {
         const sumaPonderada = completadas.reduce((acc, ev) => acc + (ev.nota * ev.peso), 0);
         const promedio = sumaPonderada / sumaPesos;
@@ -210,9 +342,8 @@ function calcularOSimular(mostrarAlertas = true) {
             estadoElement.classList.add('desaprobado');
         }
 
-        resultadoMensaje.innerHTML = `Completaste las 6 evaluaciones del curso. Tu promedio final ponderado es de <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
+        resultadoMensaje.innerHTML = `Completaste las 6 evaluaciones de <strong>${cursoActual ? cursoActual.nombre : 'este curso'}</strong>. Tu promedio final ponderado es de <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
 
-        // Métricas secundarias
         metricasSecundarias.style.display = 'grid';
         metricAcumulado.textContent = promedio.toFixed(2);
         metricPesoEvaluado.textContent = "100% evaluado";
@@ -226,10 +357,7 @@ function calcularOSimular(mostrarAlertas = true) {
         return;
     }
 
-    // =========================================================================
-    // CASO 2: MODO PREDICTIVO "¿CUÁNTO NECESITO PARA APROBAR?"
-    // =========================================================================
-    // Peso evaluado y peso pendiente
+    // CASO 2: MODO PREDICTIVO
     const pesoEvaluado = completadas.reduce((acc, ev) => acc + ev.peso, 0);
     const pesoPendiente = pendientes.reduce((acc, ev) => acc + ev.peso, 0);
 
@@ -240,21 +368,14 @@ function calcularOSimular(mostrarAlertas = true) {
         return;
     }
 
-    // Puntos acumulados en base al peso total
     const puntosAcumulados = completadas.reduce((acc, ev) => acc + (ev.nota * ev.peso), 0);
-
-    // Nota requerida promedio en lo pendiente para alcanzar notaMeta
-    // Fórmula: (puntosAcumulados + notaReq * pesoPendiente) / sumaPesos = notaMeta
-    // notaReq = (notaMeta * sumaPesos - puntosAcumulados) / pesoPendiente
     const notaRequerida = (notaMeta * sumaPesos - puntosAcumulados) / pesoPendiente;
 
-    // Escenarios extremos
     const mejorCasoMax = (puntosAcumulados + 20 * pesoPendiente) / sumaPesos;
     const peorCasoMin = (puntosAcumulados + 0 * pesoPendiente) / sumaPesos;
     const aporteActual = puntosAcumulados / sumaPesos;
     const pctEvaluado = ((pesoEvaluado / sumaPesos) * 100).toFixed(0);
 
-    // Texto de evaluaciones pendientes
     const nombresPendientes = pendientes.map(p => `<strong>${p.nombre}</strong>`).join(', ');
     const textoEvaluaciones = pendientes.length === 1 
         ? `en ${nombresPendientes}` 
@@ -266,13 +387,11 @@ function calcularOSimular(mostrarAlertas = true) {
 
     estadoElement.className = "result-status-pill";
 
-    // Clasificación del resultado predictivo
     if (notaRequerida <= 0) {
-        // Ya aprobó con las notas acumuladas
         resultadoElement.textContent = "0.00";
         estadoElement.textContent = "★ ¡Aprobación Asegurada!";
         estadoElement.classList.add('aprobado');
-        resultadoMensaje.innerHTML = `¡Felicitaciones! Con tus notas acumuladas ya alcanzaste la meta de <strong>${notaMeta.toFixed(1)}</strong>. Incluso sacando 0.00 en lo que falta, tu nota mínima final asegurada es de <strong>${peorCasoMin.toFixed(2)}</strong>.`;
+        resultadoMensaje.innerHTML = `¡Felicitaciones! Con tus notas acumuladas en <strong>${cursoActual ? cursoActual.nombre : 'el curso'}</strong> ya alcanzaste la meta de <strong>${notaMeta.toFixed(1)}</strong>. Incluso sacando 0.00 en lo que falta, tu nota mínima final asegurada es de <strong>${peorCasoMin.toFixed(2)}</strong>.`;
     } else if (notaRequerida <= 10.5) {
         resultadoElement.textContent = notaRequerida.toFixed(2);
         estadoElement.textContent = `✓ Meta Muy Accesible (${notaRequerida.toFixed(2)})`;
@@ -294,14 +413,12 @@ function calcularOSimular(mostrarAlertas = true) {
         estadoElement.classList.add('critico');
         resultadoMensaje.innerHTML = `¡Situación muy ajustada! Necesitas una nota casi perfecta de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones} para alcanzar tu meta de <strong>${notaMeta.toFixed(1)}</strong>.`;
     } else {
-        // Imposible matemáticamente
         resultadoElement.textContent = notaRequerida.toFixed(2);
         estadoElement.textContent = "✕ Meta Inalcanzable";
         estadoElement.classList.add('desaprobado');
         resultadoMensaje.innerHTML = `Lamentablemente la meta de <strong>${notaMeta.toFixed(1)}</strong> es matemáticamente inalcanzable, ya que requerirías <strong>${notaRequerida.toFixed(2)}</strong> (el límite es 20). Tu nota máxima posible sacando 20 en todo lo restante es <strong>${mejorCasoMax.toFixed(2)}</strong>.`;
     }
 
-    // Actualizar métricas secundarias
     metricasSecundarias.style.display = 'grid';
     metricAcumulado.textContent = aporteActual.toFixed(2);
     metricPesoEvaluado.textContent = `${pctEvaluado}% evaluado`;
@@ -314,7 +431,6 @@ function calcularOSimular(mostrarAlertas = true) {
     }
 }
 
-// Resetear resultado
 function resetearResultado() {
     resultadoTipoEtiqueta.textContent = "Estado de la Simulación";
     resultadoElement.textContent = "--";
@@ -324,19 +440,22 @@ function resetearResultado() {
     metricasSecundarias.style.display = 'none';
 }
 
-// Event Listeners en tiempo real para todos los campos
+// =========================================================================
+// EVENT LISTENERS Y AUTOGUARDADO
+// =========================================================================
+
 EVALUACIONES.forEach(ev => {
     const inputNota = document.getElementById(ev.notaId);
     const inputPeso = document.getElementById(ev.pesoId);
 
     if (inputNota) {
         inputNota.addEventListener('input', () => {
-            // Validar que no se exceda de 20
             const val = parseFloat(inputNota.value);
             if (val > 20) {
                 mostrarAlerta(`La calificación no puede ser mayor a 20.`, "danger");
             }
             actualizarContadores();
+            autoGuardarCurso();
             calcularOSimular(false);
         });
     }
@@ -344,6 +463,7 @@ EVALUACIONES.forEach(ev => {
     if (inputPeso) {
         inputPeso.addEventListener('input', () => {
             actualizarContadores();
+            autoGuardarCurso();
             calcularOSimular(false);
         });
     }
@@ -351,28 +471,27 @@ EVALUACIONES.forEach(ev => {
 
 if (notaMetaInput) {
     notaMetaInput.addEventListener('input', () => {
+        autoGuardarCurso();
         calcularOSimular(false);
     });
 }
 
-// Evento de envío del formulario
 formulario.addEventListener('submit', function(event) {
     event.preventDefault();
+    autoGuardarCurso();
     calcularOSimular(true);
 });
 
-// Botón Limpiar
 if (btnLimpiar) {
     btnLimpiar.addEventListener('click', function() {
         formulario.reset();
         notaMetaInput.value = "10.5";
-        if (alertaBox) {
-            alertaBox.classList.remove('show');
-        }
+        if (alertaBox) alertaBox.classList.remove('show');
         actualizarContadores();
+        autoGuardarCurso();
         resetearResultado();
     });
 }
 
-// Inicialización
-actualizarContadores();
+// Inicializar al cargar el documento
+document.addEventListener('DOMContentLoaded', inicializarCurso);

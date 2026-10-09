@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Asignaturas | Gestor Académico UNSA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Encabezado del Dashboard -->
+        <header class="header-section">
+            <div class="brand-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+                Gestor Académico UNSA
+            </div>
+            <h1>Mis Asignaturas</h1>
+            <p>Monitorea tu semestre, administra tus asignaturas y simula las calificaciones requeridas para aprobar.</p>
+        </header>
+
+        <!-- Panel de Métricas Globales del Semestre -->
+        <section class="global-summary-card">
+            <div class="global-metric">
+                <div class="metric-icon blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                </div>
+                <div class="metric-data">
+                    <span class="global-metric-val" id="global-total-cursos">0</span>
+                    <span class="global-metric-label">Cursos Matriculados</span>
+                </div>
+            </div>
+
+            <div class="global-metric">
+                <div class="metric-icon purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="metric-data">
+                    <span class="global-metric-val" id="global-promedio-ponderado">0.00</span>
+                    <span class="global-metric-label">Ponderado Semestral</span>
+                </div>
+            </div>
+
+            <div class="global-metric">
+                <div class="metric-icon green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="metric-data">
+                    <span class="global-metric-val highlight-green" id="global-aprobados">0</span>
+                    <span class="global-metric-label">Metas Aseguradas</span>
+                </div>
+            </div>
+
+            <div class="global-metric">
+                <div class="metric-icon amber">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <div class="metric-data">
+                    <span class="global-metric-val highlight-amber" id="global-en-riesgo">0</span>
+                    <span class="global-metric-label">En Seguimiento</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Barra de Búsqueda y Creación -->
+        <div class="dashboard-controls-bar">
+            <div class="search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="input-buscar-curso" placeholder="Buscar por nombre o código...">
+            </div>
+
+            <button type="button" class="btn btn-primary" id="btn-abrir-modal-nuevo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Nueva Asignatura
+            </button>
+        </div>
+
+        <!-- Grid de Tarjetas de Cursos -->
+        <main class="courses-grid" id="contenedor-cursos">
+            <!-- Renderizado dinámicamente desde cursos.js -->
+        </main>
+
+        <!-- Estado vacío si no hay cursos -->
+        <div id="empty-state" class="empty-state-card" style="display: none;">
+            <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+            </div>
+            <h3>No se encontraron asignaturas</h3>
+            <p>Agrega tus asignaturas del semestre para comenzar a simular tus promedios.</p>
+            <button type="button" class="btn btn-primary" id="btn-crear-primer-curso">
+                Agregar mi primera asignatura
+            </button>
+        </div>
+
+        <!-- Modal para Crear / Editar Curso -->
+        <div id="modal-curso" class="modal-backdrop" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h2 id="modal-titulo">Nueva Asignatura</h2>
+                    <button type="button" class="modal-close" id="btn-cerrar-modal">&times;</button>
+                </div>
+
+                <form id="form-curso">
+                    <input type="hidden" id="curso-id">
+
+                    <div class="form-group">
+                        <label for="curso-nombre">Nombre de la Asignatura *</label>
+                        <input type="text" id="curso-nombre" placeholder="Ej: Cálculo en Varias Variables" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="curso-codigo">Código / Sigla</label>
+                            <input type="text" id="curso-codigo" placeholder="Ej: MAT-201">
+                        </div>
+                        <div class="form-group">
+                            <label for="curso-creditos">Créditos</label>
+                            <input type="number" id="curso-creditos" min="1" max="10" value="4">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curso-meta">Nota Meta a Alcanzar</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="curso-meta" min="0" max="20" step="0.1" value="10.5">
+                            <span class="input-suffix">UNSA: 10.5</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="grupo-plantilla-pesos">
+                        <label>Plantilla de Ponderación Inicial</label>
+                        <div class="radio-cards">
+                            <label class="radio-card selected">
+                                <input type="radio" name="plantilla-pesos" value="unsa" checked>
+                                <div class="radio-info">
+                                    <strong>UNSA Estándar</strong>
+                                    <span>Fase 1: 30%, Fase 2: 30%, Fase 3: 40%</span>
+                                </div>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="plantilla-pesos" value="iguales">
+                                <div class="radio-info">
+                                    <strong>Equitativo</strong>
+                                    <span>~16.7% en cada evaluación</span>
+                                </div>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="plantilla-pesos" value="vacio">
+                                <div class="radio-info">
+                                    <strong>En Blanco</strong>
+                                    <span>Configurar pesos manualmente</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-cancelar-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-curso">Guardar Asignatura</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer class="footer-text">
+            Gestor Académico UNSA • Simulador y Sistema Multicurso
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="storage.js"></script>
+    <script src="cursos.js"></script>
+</body>
+</html>

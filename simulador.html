@@ -14,6 +14,29 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- Barra de Navegación Superior -->
+        <nav class="top-nav-bar">
+            <a href="index.html" class="btn-back">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Mis Asignaturas
+            </a>
+
+            <div class="course-switcher">
+                <label for="selector-curso-activo" class="switcher-label">Curso:</label>
+                <div class="select-wrapper">
+                    <select id="selector-curso-activo"></select>
+                </div>
+            </div>
+
+            <div class="autosave-tag" id="autosave-tag" title="Los cambios se guardan automáticamente">
+                <span class="autosave-dot"></span>
+                <span>Auto-guardado</span>
+            </div>
+        </nav>
+
         <!-- Encabezado Institucional / Académico -->
         <header class="header-section">
             <div class="brand-badge">
@@ -21,10 +44,10 @@
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
-                Gestor Académico
+                <span id="badge-codigo-curso">Gestor Académico UNSA</span>
             </div>
-            <h1>Simulador de Notas</h1>
-            <p>Calcula tu promedio ponderado y simula exactamente qué nota necesitas para aprobar.</p>
+            <h1 id="titulo-curso-actual">Simulador de Notas</h1>
+            <p id="subtitulo-curso-actual">Calcula tu promedio ponderado y simula exactamente qué nota necesitas para aprobar.</p>
         </header>
 
         <div id="alerta-box" class="alert-box alert-warning">
@@ -306,6 +329,7 @@
         </footer>
     </div>
 
+    <script src="storage.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

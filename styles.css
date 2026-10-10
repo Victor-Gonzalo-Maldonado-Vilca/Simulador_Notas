@@ -657,6 +657,76 @@ input[type="number"],
   border: 1px solid var(--border-light);
 }
 
+/* Docente y calificación en estrellas */
+.course-teacher-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin: -0.35rem 0 0.65rem;
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+.course-teacher-name strong {
+  color: var(--text-title);
+  font-weight: 600;
+}
+
+.stars-display {
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.stars-display .star-on {
+  color: #d97706;
+}
+
+.stars-display .star-off {
+  color: var(--border-medium);
+}
+
+.star-rating {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 0.1rem;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  padding: 0.1rem 0.15rem;
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--border-medium);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: color 0.1s ease, transform 0.1s ease;
+}
+
+.star-btn.activa {
+  color: #d97706;
+}
+
+.star-rating:hover .star-btn {
+  color: var(--border-medium);
+}
+
+.star-rating .star-btn:hover,
+.star-rating .star-btn:hover ~ .star-btn {
+  color: #f59e0b;
+}
+
+.star-btn:hover {
+  transform: scale(1.12);
+}
+
+.star-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
 .course-card-actions {
   display: flex;
   align-items: center;
@@ -1859,6 +1929,14 @@ input[type="number"],
     font-size: 0.7rem;
     font-weight: 600;
     color: #334155 !important;
+  }
+
+  .stars-display .star-on {
+    color: #b45309 !important;
+  }
+
+  .stars-display .star-off {
+    color: #cbd5e1 !important;
   }
 
   .rep-stamp-box {

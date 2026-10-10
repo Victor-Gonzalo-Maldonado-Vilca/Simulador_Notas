@@ -102,7 +102,11 @@ function cargarDatosCursoEnFormulario(curso) {
     // Encabezados
     if (tituloCursoActual) tituloCursoActual.textContent = curso.nombre;
     if (subtituloCursoActual) {
-        subtituloCursoActual.textContent = `Código: ${curso.codigo || 'S/C'} • Créditos: ${curso.creditos || 3} • Simula las notas requeridas para aprobar.`;
+        const calificacion = normalizarCalificacion(curso.calificacionProfesor);
+        const textoDocente = curso.profesor
+            ? ` • Docente: ${curso.profesor}${calificacion > 0 ? ' ' + textoEstrellas(calificacion) : ''}`
+            : '';
+        subtituloCursoActual.textContent = `Código: ${curso.codigo || 'S/C'} • Créditos: ${curso.creditos || 3}${textoDocente} • Simula las notas requeridas para aprobar.`;
     }
     if (badgeCodigoCurso) {
         badgeCodigoCurso.textContent = `${curso.codigo || 'S/C'} • ${curso.creditos || 3} Créditos`;
@@ -501,6 +505,11 @@ function generarReportePDF() {
     document.getElementById('rep-codigo-doc').textContent = `SIM-${univ.siglas}-${Date.now().toString().slice(-6)}`;
     document.getElementById('rep-curso-nombre').textContent = cursoActual.nombre;
     document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'S/C';
+    document.getElementById('rep-curso-profesor').textContent = cursoActual.profesor || 'No registrado';
+    const calificacionDocente = normalizarCalificacion(cursoActual.calificacionProfesor);
+    document.getElementById('rep-curso-profesor-estrellas').innerHTML = calificacionDocente > 0
+        ? `${htmlEstrellas(calificacionDocente)} (${calificacionDocente}/${MAX_ESTRELLAS})`
+        : 'Sin calificar';
     document.getElementById('rep-curso-creditos').textContent = cursoActual.creditos || 3;
     document.getElementById('rep-curso-meta').textContent = Math.max(parsearNotaMeta(notaMetaInput.value), univ.notaAprobatoria).toFixed(2);
 

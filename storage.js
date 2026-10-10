@@ -180,6 +180,33 @@ function escaparHtml(texto) {
     return String(texto ?? '').replace(/[&<>"']/g, c => entidades[c]);
 }
 
+const MAX_ESTRELLAS = 5;
+
+/**
+ * Normaliza la calificación del docente a un entero entre 0 (sin calificar) y 5.
+ */
+function normalizarCalificacion(valor) {
+    const n = parseInt(valor, 10);
+    return isNaN(n) ? 0 : Math.min(Math.max(n, 0), MAX_ESTRELLAS);
+}
+
+/**
+ * Estrellas en texto plano (★★★☆☆), útil para textContent.
+ */
+function textoEstrellas(calificacion) {
+    const n = normalizarCalificacion(calificacion);
+    return '★'.repeat(n) + '☆'.repeat(MAX_ESTRELLAS - n);
+}
+
+/**
+ * Estrellas en HTML con las llenas y vacías diferenciadas por color.
+ */
+function htmlEstrellas(calificacion) {
+    const n = normalizarCalificacion(calificacion);
+    return `<span class="stars-display" role="img" aria-label="${n} de ${MAX_ESTRELLAS} estrellas">` +
+        `<span class="star-on">${'★'.repeat(n)}</span><span class="star-off">${'★'.repeat(MAX_ESTRELLAS - n)}</span></span>`;
+}
+
 /**
  * Obtiene todos los cursos guardados en LocalStorage.
  * Si no existen, inicializa los cursos de demostración.
@@ -555,6 +582,8 @@ function validarRespaldo(datos) {
             creditos: parseInt(c.creditos) || 3,
             // Meta vacía = sigue la nota aprobatoria de la universidad
             notaMeta: c.notaMeta === '' || c.notaMeta === null || c.notaMeta === undefined ? '' : parsearNotaMeta(c.notaMeta),
+            profesor: typeof c.profesor === 'string' ? c.profesor.trim().slice(0, 80) : '',
+            calificacionProfesor: normalizarCalificacion(c.calificacionProfesor),
             notas,
             pesos,
             fechaModificacion: typeof c.fechaModificacion === 'string' ? c.fechaModificacion : new Date().toISOString()

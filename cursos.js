@@ -65,6 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const creditos = escaparHtml(curso.creditos ? `${curso.creditos} Créditos` : '3 Créditos');
             const nombre = escaparHtml(curso.nombre);
             const idSeguro = escaparHtml(curso.id);
+            const calificacion = normalizarCalificacion(curso.calificacionProfesor);
+            const filaDocente = (curso.profesor || calificacion > 0)
+                ? `<div class="course-teacher-row">
+                        <span class="course-teacher-name">Docente: <strong>${escaparHtml(curso.profesor || 'Sin nombre')}</strong></span>
+                        ${calificacion > 0 ? htmlEstrellas(calificacion) : ''}
+                   </div>`
+                : '';
 
             card.innerHTML = `
                 <div class="course-card-header">
@@ -89,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <h3 class="course-title">${nombre}</h3>
+                ${filaDocente}
 
                 <!-- Estado Diagnóstico -->
                 <div class="course-status-row">
@@ -171,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitulo.textContent = 'Nueva Asignatura';
         btnGuardarCurso.textContent = 'Guardar Asignatura';
         prepararCampoMeta('');
+        establecerCalificacionFormulario(0);
         document.getElementById('curso-creditos').value = '4';
         document.getElementById('grupo-plantilla-pesos').style.display = 'block';
         modalCurso.style.display = 'flex';
@@ -184,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('curso-codigo').value = curso.codigo || '';
         document.getElementById('curso-creditos').value = curso.creditos || 3;
         prepararCampoMeta(curso.notaMeta ?? '');
+        document.getElementById('curso-profesor').value = curso.profesor || '';
+        establecerCalificacionFormulario(curso.calificacionProfesor);
         document.getElementById('grupo-plantilla-pesos').style.display = 'none';
         modalTitulo.textContent = 'Editar Asignatura';
         btnGuardarCurso.textContent = 'Guardar Cambios';
@@ -198,6 +209,38 @@ document.addEventListener('DOMContentLoaded', () => {
         inputMeta.min = univ.notaAprobatoria;
         inputMeta.placeholder = univ.notaAprobatoria;
         document.getElementById('curso-meta-sufijo').textContent = `Aprobatoria ${univ.siglas}: ${univ.notaAprobatoria}`;
+    }
+
+    // Selector de estrellas del docente (clic en la misma estrella = quitar calificación)
+    const contenedorEstrellas = document.getElementById('curso-profesor-estrellas');
+    const inputCalificacion = document.getElementById('curso-profesor-calificacion');
+
+    function establecerCalificacionFormulario(valor) {
+        const n = normalizarCalificacion(valor);
+        inputCalificacion.value = n;
+        contenedorEstrellas.querySelectorAll('.star-btn').forEach(btn => {
+            const valorBoton = Number(btn.dataset.valor);
+            btn.classList.toggle('activa', valorBoton <= n);
+            btn.setAttribute('aria-checked', String(valorBoton === n));
+        });
+    }
+
+    if (contenedorEstrellas && inputCalificacion) {
+        // Se crean de 5 a 1: con flex row-reverse se ven de 1 a 5 y el hover ilumina las anteriores
+        for (let i = MAX_ESTRELLAS; i >= 1; i--) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'star-btn';
+            btn.dataset.valor = i;
+            btn.textContent = '★';
+            btn.setAttribute('role', 'radio');
+            btn.setAttribute('aria-label', `${i} ${i === 1 ? 'estrella' : 'estrellas'}`);
+            btn.addEventListener('click', () => {
+                const actual = Number(inputCalificacion.value);
+                establecerCalificacionFormulario(actual === i ? 0 : i);
+            });
+            contenedorEstrellas.appendChild(btn);
+        }
     }
 
     // Marca visualmente la tarjeta del radio seleccionado (form.reset() no actualiza las clases)
@@ -239,6 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const nombre = document.getElementById('curso-nombre').value.trim();
             const codigo = document.getElementById('curso-codigo').value.trim();
             const creditos = parseInt(document.getElementById('curso-creditos').value) || 3;
+            const profesor = document.getElementById('curso-profesor').value.trim();
+            const calificacionProfesor = normalizarCalificacion(inputCalificacion.value);
             const metaRaw = document.getElementById('curso-meta').value.trim();
             // Meta vacía = sigue la nota aprobatoria de la universidad
             const meta = metaRaw === '' ? '' : parsearNotaMeta(metaRaw);
@@ -252,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarDashboard();
                     return;
                 }
-                Object.assign(existente, { nombre, codigo, creditos, notaMeta: meta });
+                Object.assign(existente, { nombre, codigo, creditos, notaMeta: meta, profesor, calificacionProfesor });
                 guardarCurso(existente);
                 cerrarModal();
                 actualizarDashboard();
@@ -272,6 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 nombre,
                 codigo,
                 creditos,
+                profesor,
+                calificacionProfesor,
                 notaMeta: meta,
                 notas: { nota1: '', nota2: '', nota3: '', nota4: '', nota5: '', nota6: '' },
                 pesos

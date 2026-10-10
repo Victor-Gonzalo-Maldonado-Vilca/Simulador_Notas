@@ -1,9 +1,3 @@
-/* ==========================================================================
-   GESTOR ACADÉMICO Y SIMULADOR DE NOTAS - SISTEMA DE DISEÑO INSTITUCIONAL
-   Formato formal, riguroso, accesible y visualmente confortable.
-   Inspirado en sistemas de gestión universitaria (UNSA).
-   ========================================================================== */
-
 :root {
   /* Identidad Cromática Institucional (Modo Claro) */
   --inst-navy: #0f2742;            /* Azul institucional primario */
@@ -338,6 +332,120 @@ input[type="number"],
 /* ==========================================================================
    DASHBOARD DE ASIGNATURAS (INDEX.HTML)
    ========================================================================== */
+
+/* Perfil académico (universidad y nota aprobatoria) */
+.profile-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-left: 4px solid var(--univ-primario, var(--inst-granate));
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-subtle);
+}
+
+.profile-crest {
+  flex-shrink: 0;
+  min-width: 3.25rem;
+  padding: 0.55rem 0.65rem;
+  background: var(--univ-primario, var(--inst-granate));
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  border-radius: var(--radius-xs);
+}
+
+.profile-info,
+.profile-pass {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.profile-info {
+  flex: 1 1 14rem;
+}
+
+.profile-label {
+  font-size: 0.675rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+}
+
+.profile-univ-name {
+  font-size: 0.95rem;
+  color: var(--text-title);
+  overflow-wrap: anywhere;
+}
+
+.profile-pass-value {
+  font-size: 1.25rem;
+  color: var(--text-title);
+  line-height: 1.1;
+}
+
+.profile-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-title);
+  background: var(--surface-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  outline: none;
+  font-family: inherit;
+}
+
+.form-group select:focus {
+  border-color: var(--border-focus);
+}
+
+.form-hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.725rem;
+  color: var(--text-light);
+}
+
+.univ-pass-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xs);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.univ-pass-preview strong {
+  font-size: 1.05rem;
+  color: var(--text-title);
+}
+
+.univ-swatch {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  border: 1px solid var(--border-medium);
+}
 
 .global-summary-card {
   display: grid;
@@ -1519,7 +1627,7 @@ input[type="number"],
     justify-content: space-between;
     gap: 1rem;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid #0f2742;
+    border-bottom: 2px solid var(--univ-secundario, #0f2742);
   }
 
   .rep-crest-block {
@@ -1529,7 +1637,7 @@ input[type="number"],
   .rep-crest-badge {
     display: inline-block;
     padding: 0.4rem 0.75rem;
-    background: #7e1927 !important;
+    background: var(--univ-primario, #7e1927) !important;
     color: #ffffff !important;
     font-weight: 800;
     font-size: 1.15rem;
@@ -1545,7 +1653,7 @@ input[type="number"],
   .rep-inst-name {
     font-size: 1rem;
     font-weight: 800;
-    color: #0f2742 !important;
+    color: var(--univ-secundario, #0f2742) !important;
     letter-spacing: 0.02em;
     margin-bottom: 0.15rem;
   }
@@ -1561,7 +1669,7 @@ input[type="number"],
   .rep-doc-title {
     font-size: 0.85rem;
     font-weight: 800;
-    color: #7e1927 !important;
+    color: var(--univ-primario, #7e1927) !important;
     text-transform: uppercase;
     letter-spacing: 0.035em;
   }
@@ -1576,7 +1684,7 @@ input[type="number"],
 
   .rep-rule {
     height: 2px;
-    background: #7e1927;
+    background: var(--univ-primario, #7e1927);
     margin-bottom: 0.85rem;
   }
 
@@ -1598,29 +1706,29 @@ input[type="number"],
 
   .rep-meta-table th {
     background: #f1f5f9 !important;
-    color: #0f2742 !important;
+    color: var(--univ-secundario, #0f2742) !important;
     font-weight: 700;
   }
 
   .rep-section-tag {
     font-size: 0.725rem;
     font-weight: 800;
-    color: #0f2742 !important;
+    color: var(--univ-secundario, #0f2742) !important;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     background: #f1f5f9 !important;
     padding: 0.25rem 0.5rem;
-    border-left: 3px solid #7e1927;
+    border-left: 3px solid var(--univ-primario, #7e1927);
     margin-bottom: 0.4rem;
   }
 
   /* Tabla de Evaluaciones Normativas */
   .rep-grades-table th {
-    background: #0f2742 !important;
+    background: var(--univ-secundario, #0f2742) !important;
     color: #ffffff !important;
     font-weight: 700;
     padding: 0.4rem 0.55rem;
-    border: 1px solid #0f2742;
+    border: 1px solid var(--univ-secundario, #0f2742);
     font-size: 0.75rem;
   }
 
@@ -1631,14 +1739,14 @@ input[type="number"],
 
   .rep-td-fase {
     background: #f8fafc !important;
-    color: #0f2742 !important;
+    color: var(--univ-secundario, #0f2742) !important;
     vertical-align: middle;
     font-weight: 700;
   }
 
   .rep-total-row td {
     background: #f1f5f9 !important;
-    border-top: 2px solid #0f2742 !important;
+    border-top: 2px solid var(--univ-secundario, #0f2742) !important;
     padding: 0.5rem 0.55rem;
     font-size: 0.825rem;
   }
@@ -1650,8 +1758,8 @@ input[type="number"],
 
   /* Tarjeta de Diagnóstico y Dictamen */
   .rep-diagnosis-card {
-    border: 1px solid #0f2742;
-    border-left: 4px solid #7e1927;
+    border: 1px solid var(--univ-secundario, #0f2742);
+    border-left: 4px solid var(--univ-primario, #7e1927);
     border-radius: 2px;
     padding: 0.75rem 0.9rem;
     margin-bottom: 1.15rem;
@@ -1676,9 +1784,9 @@ input[type="number"],
   .rep-diag-badge {
     font-weight: 800;
     font-size: 0.825rem;
-    color: #0f2742 !important;
+    color: var(--univ-secundario, #0f2742) !important;
     padding: 0.2rem 0.5rem;
-    border: 1px solid #0f2742;
+    border: 1px solid var(--univ-secundario, #0f2742);
     border-radius: 2px;
     display: inline-block;
   }
@@ -1686,7 +1794,7 @@ input[type="number"],
   .rep-diag-score {
     font-size: 1.25rem;
     font-weight: 800;
-    color: #7e1927 !important;
+    color: var(--univ-primario, #7e1927) !important;
   }
 
   .rep-diag-text {
@@ -1713,7 +1821,7 @@ input[type="number"],
 
   .rep-scenario-cell strong {
     font-size: 0.9rem;
-    color: #0f2742 !important;
+    color: var(--univ-secundario, #0f2742) !important;
   }
 
   /* Pie y Firmas */
@@ -1754,7 +1862,7 @@ input[type="number"],
   }
 
   .rep-stamp-box {
-    border: 1.5px dashed #7e1927;
+    border: 1.5px dashed var(--univ-primario, #7e1927);
     padding: 0.35rem 0.75rem;
     text-align: center;
     display: flex;
@@ -1762,7 +1870,7 @@ input[type="number"],
     gap: 0.15rem;
     font-size: 0.625rem;
     font-weight: 700;
-    color: #7e1927 !important;
+    color: var(--univ-primario, #7e1927) !important;
     letter-spacing: 0.05em;
   }
 }

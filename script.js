@@ -102,15 +102,15 @@ function cargarDatosCursoEnFormulario(curso) {
     // Encabezados
     if (tituloCursoActual) tituloCursoActual.textContent = curso.nombre;
     if (subtituloCursoActual) {
-        subtituloCursoActual.textContent = `Código: ${curso.codigo || 'UNSA'} • Créditos: ${curso.creditos || 3} • Simula las notas requeridas para aprobar.`;
+        subtituloCursoActual.textContent = `Código: ${curso.codigo || 'S/C'} • Créditos: ${curso.creditos || 3} • Simula las notas requeridas para aprobar.`;
     }
     if (badgeCodigoCurso) {
-        badgeCodigoCurso.textContent = `${curso.codigo || 'UNSA'} • ${curso.creditos || 3} Créditos`;
+        badgeCodigoCurso.textContent = `${curso.codigo || 'S/C'} • ${curso.creditos || 3} Créditos`;
     }
 
     // Nota Meta
     if (notaMetaInput) {
-        notaMetaInput.value = (curso.notaMeta !== undefined && curso.notaMeta !== null) ? curso.notaMeta : NOTA_META_DEFECTO;
+        notaMetaInput.value = curso.notaMeta ?? '';
     }
 
     // Cargar notas y pesos
@@ -141,7 +141,8 @@ function leerDatosFormulario() {
         notas[ev.notaId] = document.getElementById(ev.notaId).value.trim();
         pesos[ev.pesoId] = document.getElementById(ev.pesoId).value.trim();
     });
-    return { notaMeta: parsearNotaMeta(notaMetaInput.value), notas, pesos };
+    // La meta se guarda tal cual: vacía significa "usar la nota aprobatoria"
+    return { notaMeta: notaMetaInput.value.trim(), notas, pesos };
 }
 
 function autoGuardarCurso() {
@@ -230,7 +231,7 @@ function aplicarPlantillaPesos(pesos) {
 if (btnPresetUnsa) {
     btnPresetUnsa.addEventListener('click', () => {
         aplicarPlantillaPesos([15, 15, 15, 15, 20, 20]);
-        mostrarAlerta("Plantilla UNSA aplicada: Fase 1 (30%), Fase 2 (30%), Fase 3 (40%).", "info");
+        mostrarAlerta("Plantilla por fases aplicada: Fase 1 (30%), Fase 2 (30%), Fase 3 (40%).", "info");
     });
 }
 
@@ -249,9 +250,10 @@ function calcularOSimular(mostrarAlertas = true) {
     actualizarContadores();
 
     const datos = leerDatosFormulario();
-    const notaMeta = datos.notaMeta;
+    const notaAprobatoria = obtenerNotaAprobatoria();
+    const metaIngresada = parsearNotaMeta(datos.notaMeta, notaAprobatoria);
 
-    if (notaMeta < 0 || notaMeta > NOTA_MAXIMA) {
+    if (metaIngresada < 0 || metaIngresada > NOTA_MAXIMA) {
         if (mostrarAlertas) {
             mostrarAlerta(`La nota meta debe estar entre 0 y ${NOTA_MAXIMA}.`, "danger");
         }
@@ -259,8 +261,13 @@ function calcularOSimular(mostrarAlertas = true) {
         return;
     }
 
+    if (metaIngresada < notaAprobatoria && mostrarAlertas) {
+        mostrarAlerta(`La meta personal no puede ser menor que la nota aprobatoria (${notaAprobatoria}). Se usará ${notaAprobatoria}.`, "info");
+    }
+
     // Cálculo compartido con el dashboard (storage.js)
-    const r = calcularResumenCurso(datos);
+    const r = calcularResumenCurso(datos, notaAprobatoria);
+    const notaMeta = r.notaMeta;
 
     if (r.estado === 'invalido') {
         if (mostrarAlertas) {
@@ -294,10 +301,13 @@ function calcularOSimular(mostrarAlertas = true) {
         resultadoTipoEtiqueta.textContent = "Resultado Final Ponderado";
         resultadoElement.textContent = promedio;
         estadoElement.className = `result-status-pill ${r.badgeClass}`;
-        estadoElement.textContent = `Condición: ${r.badgeClass === 'aprobado' ? 'Aprobado' : 'Desaprobado'} (Meta: ${metaTexto})`;
+        estadoElement.textContent = `Condición: ${r.badgeClass === 'aprobado' ? 'Aprobado' : 'Desaprobado'} (Nota aprobatoria: ${notaAprobatoria})`;
         resultadoMensaje.innerHTML = r.pendientes.length === 0
             ? `Evaluación completa de <strong>${nombreCurso}</strong>. El promedio final ponderado obtenido es <strong>${promedio}</strong> sobre 20.`
             : `Las evaluaciones pendientes de <strong>${nombreCurso}</strong> tienen peso 0%, por lo que el promedio final ponderado es <strong>${promedio}</strong> sobre 20.`;
+        if (notaMeta > notaAprobatoria) {
+            resultadoMensaje.innerHTML += ` Meta personal de <strong>${metaTexto}</strong>: ${r.metaAlcanzada ? 'alcanzada' : 'no alcanzada'}.`;
+        }
 
         mostrarMetricas(r, "100% evaluado");
         avisarSiPesosNoSuman100(r.sumaPesos, mostrarAlertas, `Nota: La suma total de los pesos es ${r.sumaPesos.toFixed(1)}%, no 100%. El cálculo se normalizó proporcionalmente.`);
@@ -346,6 +356,15 @@ function calcularOSimular(mostrarAlertas = true) {
     estadoElement.className = `result-status-pill ${r.exigencia}`;
     estadoElement.textContent = presentacion.estado;
     resultadoMensaje.innerHTML = presentacion.mensaje;
+
+    // Con una meta personal mayor, informar también lo mínimo para solo aprobar
+    if (notaMeta > notaAprobatoria && r.exigencia !== 'aprobado') {
+        resultadoMensaje.innerHTML += r.notaRequeridaAprobar <= 0
+            ? ` La aprobación del curso (nota ${notaAprobatoria}) ya está asegurada.`
+            : r.notaRequeridaAprobar <= NOTA_MAXIMA
+                ? ` Para solo aprobar (nota ${notaAprobatoria}) necesitas <strong>${r.notaRequeridaAprobar.toFixed(2)}</strong>.`
+                : ` Aprobar el curso (nota ${notaAprobatoria}) ya no es alcanzable.`;
+    }
 
     mostrarMetricas(r, `${r.pctEvaluado}% evaluado`);
     avisarSiPesosNoSuman100(r.sumaPesos, mostrarAlertas, `Los pesos actuales suman ${r.sumaPesos.toFixed(1)}%. El simulador normalizó los porcentajes sobre el total actual.`);
@@ -442,7 +461,7 @@ if (btnLimpiar) {
             return;
         }
         formulario.reset();
-        notaMetaInput.value = NOTA_META_DEFECTO;
+        notaMetaInput.value = '';
         if (alertaBox) alertaBox.classList.remove('show');
         actualizarContadores();
         autoGuardarCurso();
@@ -477,11 +496,13 @@ function generarReportePDF() {
     });
 
     document.getElementById('rep-fecha-emision').textContent = formatoFecha;
-    document.getElementById('rep-codigo-doc').textContent = `ACTA-SIM-${cursoActual.codigo || 'UNSA'}-${Date.now().toString().slice(-6)}`;
+    const univ = obtenerUniversidad();
+    document.getElementById('rep-univ-nombre').textContent = univ.nombre.toUpperCase();
+    document.getElementById('rep-codigo-doc').textContent = `SIM-${univ.siglas}-${Date.now().toString().slice(-6)}`;
     document.getElementById('rep-curso-nombre').textContent = cursoActual.nombre;
-    document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'UNSA';
+    document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'S/C';
     document.getElementById('rep-curso-creditos').textContent = cursoActual.creditos || 3;
-    document.getElementById('rep-curso-meta').textContent = parsearNotaMeta(notaMetaInput.value).toFixed(2);
+    document.getElementById('rep-curso-meta').textContent = Math.max(parsearNotaMeta(notaMetaInput.value), univ.notaAprobatoria).toFixed(2);
 
     // Llenar tabla de evaluaciones
     const tablaCuerpo = document.getElementById('rep-tabla-cuerpo');
@@ -572,7 +593,20 @@ if (btnThemeToggle) {
 }
 
 // Inicializar al cargar el documento
+// Muestra la nota aprobatoria de la universidad (no editable) junto a la meta personal
+function configurarUniversidadEnSimulador() {
+    const univ = obtenerUniversidad();
+    const tag = document.getElementById('tag-nota-aprobatoria');
+    if (tag) tag.textContent = `Aprobatoria ${univ.siglas}: ${univ.notaAprobatoria}`;
+    if (notaMetaInput) {
+        notaMetaInput.min = univ.notaAprobatoria;
+        notaMetaInput.placeholder = univ.notaAprobatoria;
+    }
+    mostrarSiglasUniversidad(univ);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    configurarUniversidadEnSimulador();
     inicializarCurso();
     actualizarBotonesTema(obtenerTemaActual());
 });

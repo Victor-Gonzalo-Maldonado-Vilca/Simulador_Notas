@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Asignaturas | Gestor Académico UNSA</title>
+    <title>Mis Asignaturas | Gestor Académico</title>
     <!-- Script preventivo anti-parpadeo de tema -->
     <script>
         try {
@@ -26,7 +26,7 @@
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
-                Portal Académico UNSA
+                Portal Académico <span class="js-univ-siglas">UNSA</span>
             </div>
 
             <div class="nav-right-tools">
@@ -57,11 +57,33 @@
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
-                Gestor Académico UNSA
+                Gestor Académico <span class="js-univ-siglas">UNSA</span>
             </div>
             <h1>Mis Asignaturas</h1>
             <p>Monitorea tu semestre, administra tus asignaturas y simula las calificaciones requeridas para aprobar.</p>
         </header>
+
+        <!-- Perfil Académico: universidad y nota aprobatoria -->
+        <section class="profile-card" id="perfil-card">
+            <div class="profile-crest js-univ-siglas" id="perfil-crest">UNSA</div>
+            <div class="profile-info">
+                <span class="profile-label">Universidad</span>
+                <strong class="profile-univ-name" id="perfil-univ-nombre">--</strong>
+                <span class="profile-sub" id="perfil-estudiante">Estudiante</span>
+            </div>
+            <div class="profile-pass">
+                <span class="profile-label">Nota aprobatoria</span>
+                <strong class="profile-pass-value" id="perfil-nota-aprobatoria">10.5</strong>
+                <span class="profile-sub">Fijada por la universidad</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-editar-perfil">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Cambiar perfil
+            </button>
+        </section>
 
         <!-- Panel de Métricas Globales del Semestre -->
         <section class="global-summary-card">
@@ -215,11 +237,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="curso-meta">Nota Meta a Alcanzar</label>
+                        <label for="curso-meta">Meta Personal (opcional)</label>
                         <div class="input-wrapper">
-                            <input type="number" id="curso-meta" min="0" max="20" step="0.1" value="10.5">
-                            <span class="input-suffix">UNSA: 10.5</span>
+                            <input type="number" id="curso-meta" min="0" max="20" step="0.1" placeholder="10.5">
+                            <span class="input-suffix" id="curso-meta-sufijo">Aprobatoria: 10.5</span>
                         </div>
+                        <small class="form-hint">Déjala vacía para usar la nota aprobatoria de tu universidad.</small>
                     </div>
 
                     <div class="form-group" id="grupo-plantilla-pesos">
@@ -228,7 +251,7 @@
                             <label class="radio-card selected">
                                 <input type="radio" name="plantilla-pesos" value="unsa" checked>
                                 <div class="radio-info">
-                                    <strong>UNSA Estándar</strong>
+                                    <strong>Estándar por Fases</strong>
                                     <span>Fase 1: 30%, Fase 2: 30%, Fase 3: 40%</span>
                                 </div>
                             </label>
@@ -257,20 +280,74 @@
             </div>
         </div>
 
+        <!-- Modal de Perfil del Estudiante -->
+        <div id="modal-perfil" class="modal-backdrop" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h2>Perfil del Estudiante</h2>
+                    <button type="button" class="modal-close" id="btn-cerrar-perfil">&times;</button>
+                </div>
+
+                <form id="form-perfil">
+                    <div class="form-group">
+                        <label for="perfil-nombre">Nombre del Estudiante (opcional)</label>
+                        <input type="text" id="perfil-nombre" maxlength="80" placeholder="Aparece en los reportes PDF">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="perfil-universidad">Universidad</label>
+                        <select id="perfil-universidad"></select>
+                    </div>
+
+                    <div id="grupo-univ-personalizada" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="perfil-univ-nombre-input">Nombre de la Universidad *</label>
+                                <input type="text" id="perfil-univ-nombre-input" maxlength="100" placeholder="Ej: Universidad Nacional del Altiplano">
+                            </div>
+                            <div class="form-group">
+                                <label for="perfil-univ-siglas">Siglas</label>
+                                <input type="text" id="perfil-univ-siglas" maxlength="12" placeholder="Ej: UNA">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-univ-nota">Nota Aprobatoria *</label>
+                            <input type="number" id="perfil-univ-nota" min="0" max="20" step="0.1" placeholder="10.5">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="grupo-nota-fija">
+                        <label>Nota Aprobatoria</label>
+                        <div class="univ-pass-preview">
+                            <span class="univ-swatch" id="perfil-swatch-primario"></span>
+                            <span class="univ-swatch" id="perfil-swatch-secundario"></span>
+                            <strong id="perfil-nota-fija">10.5</strong>
+                            <span>Fijada por la universidad (no editable)</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-cancelar-perfil">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Perfil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Documento Imprimible del Consolidado Semestral en PDF -->
         <div id="reporte-semestral-pdf" class="academic-report-sheet" aria-hidden="true">
             <header class="rep-header">
                 <div class="rep-crest-block">
-                    <span class="rep-crest-badge">UNSA</span>
+                    <span class="rep-crest-badge js-univ-siglas">UNSA</span>
                 </div>
                 <div class="rep-header-info">
-                    <h2 class="rep-inst-name">UNIVERSIDAD NACIONAL DE SAN AGUSTÍN DE AREQUIPA</h2>
-                    <h3 class="rep-inst-sub">VICERRECTORADO ACADÉMICO • DIRECCIÓN DE ASUNTOS ACADÉMICOS</h3>
+                    <h2 class="rep-inst-name" id="rep-sem-univ-nombre">UNIVERSIDAD</h2>
+                    <h3 class="rep-inst-sub">Reporte personal de seguimiento académico</h3>
                     <h4 class="rep-doc-title">CONSOLIDADO INFORMATIVO DE ASIGNATURAS Y RENDIMIENTO SEMESTRAL</h4>
                 </div>
                 <div class="rep-header-meta">
                     <div><strong>Fecha:</strong> <span id="rep-sem-fecha">--</span></div>
-                    <div><strong>Documento:</strong> <span id="rep-sem-codigo">DOC-SEM-UNSA</span></div>
+                    <div><strong>Documento:</strong> <span id="rep-sem-codigo">--</span></div>
                 </div>
             </header>
 
@@ -314,7 +391,7 @@
 
             <footer class="rep-footer-block">
                 <p class="rep-disclaimer">
-                    <strong>AVISO NORMATIVO:</strong> Este consolidado es un reporte de proyección curricular generado con fines de seguimiento académico personal. No sustituye las actas oficiales emitidas por la Dirección Universitaria de Tecnologías de Información y Comunicación (DUTIC) de la UNSA.
+                    <strong>AVISO NORMATIVO:</strong> Este consolidado es un reporte de proyección curricular generado con fines de seguimiento académico personal. No es un documento oficial y no sustituye las actas ni los registros académicos emitidos por la universidad.
                 </p>
                 <div class="rep-signatures">
                     <div class="rep-sig-item">
@@ -330,7 +407,7 @@
         </div>
 
         <footer class="footer-text">
-            Gestor Académico UNSA • Simulador y Sistema Multicurso
+            Gestor Académico • Simulador y Sistema Multicurso
         </footer>
     </div>
 

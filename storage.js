@@ -1,5 +1,100 @@
 const STORAGE_KEY = 'unsa_simulador_cursos_v1';
 const ACTIVE_COURSE_KEY = 'unsa_simulador_curso_activo_id';
+const PERFIL_KEY = 'unsa_simulador_perfil_v1';
+
+// ==========================================================================
+// CATÁLOGO DE UNIVERSIDADES
+// Nota aprobatoria fija (escala 0-20) y colores usados en la interfaz y los reportes.
+// Verifica cada nota con el reglamento de evaluación vigente de la universidad;
+// los colores son aproximaciones de la identidad visual de cada institución.
+// ==========================================================================
+const UNIVERSIDAD_POR_DEFECTO = 'unsa';
+
+const UNIVERSIDADES = {
+    unsa:   { siglas: 'UNSA',   nombre: 'Universidad Nacional de San Agustín de Arequipa',    notaAprobatoria: 10.5, colores: { primario: '#7e1927', secundario: '#0f2742' } },
+    uni:    { siglas: 'UNI',    nombre: 'Universidad Nacional de Ingeniería',                 notaAprobatoria: 10,   colores: { primario: '#7a1a1f', secundario: '#2b2b2b' } },
+    unmsm:  { siglas: 'UNMSM',  nombre: 'Universidad Nacional Mayor de San Marcos',           notaAprobatoria: 10.5, colores: { primario: '#8a1c1c', secundario: '#7a5c00' } },
+    pucp:   { siglas: 'PUCP',   nombre: 'Pontificia Universidad Católica del Perú',           notaAprobatoria: 10.5, colores: { primario: '#002d72', secundario: '#3b5b8c' } },
+    ucsm:   { siglas: 'UCSM',   nombre: 'Universidad Católica de Santa María',                notaAprobatoria: 10.5, colores: { primario: '#0b5d3b', secundario: '#1f2937' } },
+    unsaac: { siglas: 'UNSAAC', nombre: 'Universidad Nacional de San Antonio Abad del Cusco', notaAprobatoria: 10.5, colores: { primario: '#8b1d2c', secundario: '#14532d' } },
+    unt:    { siglas: 'UNT',    nombre: 'Universidad Nacional de Trujillo',                   notaAprobatoria: 10.5, colores: { primario: '#1d3c78', secundario: '#6b5416' } },
+    unalm:  { siglas: 'UNALM',  nombre: 'Universidad Nacional Agraria La Molina',             notaAprobatoria: 10.5, colores: { primario: '#0f6b3a', secundario: '#1f3a2b' } },
+    otra:   { siglas: 'OTRA',   nombre: 'Otra universidad',                                   notaAprobatoria: 10.5, colores: { primario: '#334155', secundario: '#1e293b' }, personalizable: true }
+};
+
+/**
+ * Normaliza un perfil (guardado o importado) a una forma válida.
+ */
+function normalizarPerfil(datos) {
+    const d = datos && typeof datos === 'object' ? datos : {};
+    const p = d.personalizada && typeof d.personalizada === 'object' ? d.personalizada : {};
+    const notaPersonalizada = parseFloat(p.notaAprobatoria);
+    return {
+        universidadId: UNIVERSIDADES[d.universidadId] ? d.universidadId : UNIVERSIDAD_POR_DEFECTO,
+        estudiante: typeof d.estudiante === 'string' ? d.estudiante.trim().slice(0, 80) : '',
+        personalizada: {
+            nombre: typeof p.nombre === 'string' ? p.nombre.trim().slice(0, 100) : '',
+            siglas: typeof p.siglas === 'string' ? p.siglas.trim().slice(0, 12) : '',
+            notaAprobatoria: !isNaN(notaPersonalizada) && notaPersonalizada >= 0 && notaPersonalizada <= 20 ? notaPersonalizada : 10.5
+        }
+    };
+}
+
+function obtenerPerfil() {
+    try {
+        return normalizarPerfil(JSON.parse(localStorage.getItem(PERFIL_KEY)));
+    } catch (e) {
+        return normalizarPerfil(null);
+    }
+}
+
+function guardarPerfil(perfil) {
+    const normalizado = normalizarPerfil(perfil);
+    try {
+        localStorage.setItem(PERFIL_KEY, JSON.stringify(normalizado));
+    } catch (e) {
+        console.error("Error al guardar el perfil en localStorage:", e);
+    }
+    aplicarColoresUniversidad(obtenerUniversidad(normalizado));
+    return normalizado;
+}
+
+/**
+ * Devuelve la universidad del perfil con sus datos efectivos
+ * (en "Otra universidad" usa el nombre, siglas y nota que escribió el estudiante).
+ */
+function obtenerUniversidad(perfil = obtenerPerfil()) {
+    const base = UNIVERSIDADES[perfil.universidadId] || UNIVERSIDADES[UNIVERSIDAD_POR_DEFECTO];
+    const univ = { id: perfil.universidadId, ...base };
+    if (base.personalizable) {
+        univ.nombre = perfil.personalizada.nombre || base.nombre;
+        univ.siglas = perfil.personalizada.siglas || base.siglas;
+        univ.notaAprobatoria = perfil.personalizada.notaAprobatoria;
+    }
+    return univ;
+}
+
+function obtenerNotaAprobatoria() {
+    return obtenerUniversidad().notaAprobatoria;
+}
+
+/**
+ * Expone los colores de la universidad como variables CSS (--univ-primario / --univ-secundario).
+ */
+function aplicarColoresUniversidad(univ = obtenerUniversidad()) {
+    const raiz = document.documentElement;
+    raiz.style.setProperty('--univ-primario', univ.colores.primario);
+    raiz.style.setProperty('--univ-secundario', univ.colores.secundario);
+}
+
+/**
+ * Escribe las siglas de la universidad en los elementos marcados con .js-univ-siglas.
+ */
+function mostrarSiglasUniversidad(univ = obtenerUniversidad()) {
+    document.querySelectorAll('.js-univ-siglas').forEach(el => {
+        el.textContent = univ.siglas;
+    });
+}
 
 // Cursos iniciales de ejemplo si es la primera vez que se ingresa
 const CURSOS_DEMO = [
@@ -8,7 +103,7 @@ const CURSOS_DEMO = [
         nombre: 'Cálculo en Varias Variables',
         codigo: 'MAT-201',
         creditos: 4,
-        notaMeta: 10.5,
+        notaMeta: '',
         notas: {
             nota1: 14.5,
             nota2: 13.0,
@@ -56,7 +151,7 @@ const CURSOS_DEMO = [
         nombre: 'Física Computacional',
         codigo: 'FIS-103',
         creditos: 3,
-        notaMeta: 10.5,
+        notaMeta: '',
         notas: {
             nota1: 10.0,
             nota2: 9.5,
@@ -171,12 +266,7 @@ function establecerCursoActivoId(id) {
     localStorage.setItem(ACTIVE_COURSE_KEY, id);
 }
 
-// ==========================================================================
-// MOTOR DE CÁLCULO COMPARTIDO (dashboard y simulador)
-// ==========================================================================
-
 const NOTA_MAXIMA = 20;
-const NOTA_META_DEFECTO = 10.5;
 
 // Configuración de las 6 evaluaciones
 const EVALUACIONES = [
@@ -198,12 +288,12 @@ const NIVELES_EXIGENCIA = [
 ];
 
 /**
- * Convierte la nota meta a número; solo usa el valor por defecto si está vacía o no es numérica
- * (una meta de 0 es válida).
+ * Convierte la meta personal a número. Si está vacía o no es numérica usa el valor por
+ * defecto, que es la nota aprobatoria de la universidad (una meta de 0 es un número válido).
  */
-function parsearNotaMeta(valor) {
+function parsearNotaMeta(valor, porDefecto = obtenerNotaAprobatoria()) {
     const numero = parseFloat(valor);
-    return isNaN(numero) ? NOTA_META_DEFECTO : numero;
+    return isNaN(numero) ? porDefecto : numero;
 }
 
 /**
@@ -217,11 +307,15 @@ function clasificarExigencia(notaRequerida) {
 /**
  * Calcula el resumen académico y predictivo de un curso.
  * Estados posibles: 'invalido', 'sin_pesos', 'completo', 'sin_datos', 'predictivo'.
+ *
+ * - notaAprobatoria: fijada por la universidad; decide Aprobado / Desaprobado.
+ * - notaMeta: meta personal del curso (nunca menor que la aprobatoria); se usa para
+ *   calcular la nota requerida y el nivel de exigencia.
  */
-function calcularResumenCurso(curso) {
+function calcularResumenCurso(curso, notaAprobatoria = obtenerNotaAprobatoria()) {
     const notas = curso.notas || {};
     const pesos = curso.pesos || {};
-    const notaMeta = parsearNotaMeta(curso.notaMeta);
+    const notaMeta = Math.max(parsearNotaMeta(curso.notaMeta, notaAprobatoria), notaAprobatoria);
 
     let sumaPesos = 0;
     let pesoEvaluado = 0;
@@ -252,6 +346,7 @@ function calcularResumenCurso(curso) {
 
     const base = {
         notaMeta,
+        notaAprobatoria,
         sumaPesos,
         pesoEvaluado,
         pesoPendiente,
@@ -294,11 +389,16 @@ function calcularResumenCurso(curso) {
     // Sin evaluaciones pendientes con peso: el promedio actual ya es el final
     if (pesoPendiente === 0) {
         const promedio = base.promedioActual;
-        const aprobado = promedio >= notaMeta;
+        const aprobado = promedio >= notaAprobatoria;
+        const metaAlcanzada = promedio >= notaMeta;
         const todasCompletas = pendientes.length === 0;
+        const textoMeta = notaMeta > notaAprobatoria
+            ? ` Meta personal de ${notaMeta.toFixed(1)} ${metaAlcanzada ? 'alcanzada' : 'no alcanzada'}.`
+            : '';
         return {
             ...base,
             estado: 'completo',
+            metaAlcanzada,
             badgeClass: aprobado ? 'aprobado' : 'desaprobado',
             badgeTexto: todasCompletas
                 ? `${aprobado ? 'Aprobado' : 'Desaprobado'} (${promedio.toFixed(2)})`
@@ -307,9 +407,9 @@ function calcularResumenCurso(curso) {
             notaRequerida: 0,
             mejorCaso: promedio,
             peorCaso: promedio,
-            detalle: todasCompletas
+            detalle: (todasCompletas
                 ? `Curso culminado con promedio ${promedio.toFixed(2)}.`
-                : 'Todas las evaluaciones con peso asignado están completas.'
+                : 'Todas las evaluaciones con peso asignado están completas.') + textoMeta
         };
     }
 
@@ -317,7 +417,9 @@ function calcularResumenCurso(curso) {
     const mejorCaso = (puntosAcumulados + NOTA_MAXIMA * pesoPendiente) / sumaPesos;
     const peorCaso = puntosAcumulados / sumaPesos;
     const exigencia = clasificarExigencia(notaRequerida);
-    const prediccion = { ...base, notaRequerida, mejorCaso, peorCaso, exigencia };
+    // Nota requerida solo para aprobar (igual a notaRequerida si la meta es la aprobatoria)
+    const notaRequeridaAprobar = (notaAprobatoria * sumaPesos - puntosAcumulados) / pesoPendiente;
+    const prediccion = { ...base, notaRequerida, notaRequeridaAprobar, mejorCaso, peorCaso, exigencia };
 
     if (notasLlenadas === 0) {
         return {
@@ -406,6 +508,7 @@ function crearRespaldo() {
         app: RESPALDO_APP,
         version: RESPALDO_VERSION,
         fechaExportacion: new Date().toISOString(),
+        perfil: obtenerPerfil(),
         cursos: obtenerCursos()
     };
 }
@@ -448,9 +551,10 @@ function validarRespaldo(datos) {
         return {
             id,
             nombre: c.nombre.trim(),
-            codigo: typeof c.codigo === 'string' && c.codigo.trim() ? c.codigo.trim() : 'UNSA',
+            codigo: typeof c.codigo === 'string' && c.codigo.trim() ? c.codigo.trim() : '',
             creditos: parseInt(c.creditos) || 3,
-            notaMeta: parsearNotaMeta(c.notaMeta),
+            // Meta vacía = sigue la nota aprobatoria de la universidad
+            notaMeta: c.notaMeta === '' || c.notaMeta === null || c.notaMeta === undefined ? '' : parsearNotaMeta(c.notaMeta),
             notas,
             pesos,
             fechaModificacion: typeof c.fechaModificacion === 'string' ? c.fechaModificacion : new Date().toISOString()
@@ -545,5 +649,6 @@ function actualizarBotonesTema(tema) {
     if (tema === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
     }
+    aplicarColoresUniversidad();
 })();
 

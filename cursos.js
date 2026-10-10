@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('article');
             card.className = 'course-card';
 
-            const codigo = escaparHtml(curso.codigo ? curso.codigo : 'UNSA');
+            const codigo = escaparHtml(curso.codigo ? curso.codigo : 'S/C');
             const creditos = escaparHtml(curso.creditos ? `${curso.creditos} Créditos` : '3 Créditos');
             const nombre = escaparHtml(curso.nombre);
             const idSeguro = escaparHtml(curso.id);
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="result-status-pill ${resumen.badgeClass}">
                         ${resumen.badgeTexto}
                     </span>
-                    <span class="course-target-hint">Meta: ${parsearNotaMeta(curso.notaMeta).toFixed(1)}</span>
+                    <span class="course-target-hint">Meta: ${resumen.notaMeta.toFixed(1)}</span>
                 </div>
 
                 <!-- Barra de Progreso del Ciclo -->
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('curso-id').value = '';
         modalTitulo.textContent = 'Nueva Asignatura';
         btnGuardarCurso.textContent = 'Guardar Asignatura';
-        document.getElementById('curso-meta').value = '10.5';
+        prepararCampoMeta('');
         document.getElementById('curso-creditos').value = '4';
         document.getElementById('grupo-plantilla-pesos').style.display = 'block';
         modalCurso.style.display = 'flex';
@@ -183,11 +183,21 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('curso-nombre').value = curso.nombre;
         document.getElementById('curso-codigo').value = curso.codigo || '';
         document.getElementById('curso-creditos').value = curso.creditos || 3;
-        document.getElementById('curso-meta').value = parsearNotaMeta(curso.notaMeta);
+        prepararCampoMeta(curso.notaMeta ?? '');
         document.getElementById('grupo-plantilla-pesos').style.display = 'none';
         modalTitulo.textContent = 'Editar Asignatura';
         btnGuardarCurso.textContent = 'Guardar Cambios';
         modalCurso.style.display = 'flex';
+    }
+
+    // La meta personal es opcional y no puede ser menor que la nota aprobatoria de la universidad
+    function prepararCampoMeta(valor) {
+        const univ = obtenerUniversidad();
+        const inputMeta = document.getElementById('curso-meta');
+        inputMeta.value = valor;
+        inputMeta.min = univ.notaAprobatoria;
+        inputMeta.placeholder = univ.notaAprobatoria;
+        document.getElementById('curso-meta-sufijo').textContent = `Aprobatoria ${univ.siglas}: ${univ.notaAprobatoria}`;
     }
 
     // Marca visualmente la tarjeta del radio seleccionado (form.reset() no actualiza las clases)
@@ -229,7 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const nombre = document.getElementById('curso-nombre').value.trim();
             const codigo = document.getElementById('curso-codigo').value.trim();
             const creditos = parseInt(document.getElementById('curso-creditos').value) || 3;
-            const meta = parsearNotaMeta(document.getElementById('curso-meta').value);
+            const metaRaw = document.getElementById('curso-meta').value.trim();
+            // Meta vacía = sigue la nota aprobatoria de la universidad
+            const meta = metaRaw === '' ? '' : parsearNotaMeta(metaRaw);
 
             // Edición: se actualizan solo los datos generales, conservando notas y pesos
             if (idEdicion) {
@@ -240,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarDashboard();
                     return;
                 }
-                Object.assign(existente, { nombre, codigo: codigo || 'UNSA', creditos, notaMeta: meta });
+                Object.assign(existente, { nombre, codigo, creditos, notaMeta: meta });
                 guardarCurso(existente);
                 cerrarModal();
                 actualizarDashboard();
@@ -258,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nuevoCurso = {
                 nombre,
-                codigo: codigo || 'UNSA',
+                codigo,
                 creditos,
                 notaMeta: meta,
                 notas: { nota1: '', nota2: '', nota3: '', nota4: '', nota5: '', nota6: '' },
@@ -301,7 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const metricas = calcularMetricasGlobales(cursos);
 
         document.getElementById('rep-sem-fecha').textContent = formatoFecha;
-        document.getElementById('rep-sem-codigo').textContent = `CONSOLIDADO-UNSA-${Date.now().toString().slice(-6)}`;
+        const univ = obtenerUniversidad();
+        document.getElementById('rep-sem-univ-nombre').textContent = univ.nombre.toUpperCase();
+        document.getElementById('rep-sem-codigo').textContent = `CONSOLIDADO-${univ.siglas}-${Date.now().toString().slice(-6)}`;
         document.getElementById('rep-sem-total-cursos').textContent = metricas.totalCursos;
         document.getElementById('rep-sem-total-creditos').textContent = metricas.creditosTotales;
         document.getElementById('rep-sem-promedio-global').textContent = `${metricas.promedioPonderado} / 20.00`;
@@ -314,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = calcularResumenCurso(c);
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${escaparHtml(c.codigo || 'UNSA')}</strong></td>
+                <td><strong>${escaparHtml(c.codigo || 'S/C')}</strong></td>
                 <td><strong>${escaparHtml(c.nombre)}</strong></td>
                 <td style="text-align: center;">${escaparHtml(c.creditos || 3)}</td>
                 <td style="text-align: center;">${res.pctEvaluado}% (${res.notasLlenadas}/6)</td>
@@ -355,11 +369,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const lector = new FileReader();
         lector.onload = () => {
             try {
-                const cursos = validarRespaldo(JSON.parse(lector.result));
+                const datos = JSON.parse(lector.result);
+                const cursos = validarRespaldo(datos);
                 const mensaje = `El respaldo contiene ${cursos.length} asignatura(s). ` +
                     `Se reemplazarán las ${cursosActuales.length} asignatura(s) actuales. ¿Deseas continuar?`;
                 if (confirm(mensaje)) {
                     restaurarCursos(cursos);
+                    // Los respaldos nuevos también traen el perfil (universidad y estudiante)
+                    if (datos && datos.perfil) {
+                        guardarPerfil(datos.perfil);
+                        renderizarPerfil();
+                    }
                     actualizarDashboard();
                     alert('Respaldo restaurado correctamente.');
                 }
@@ -384,6 +404,92 @@ document.addEventListener('DOMContentLoaded', () => {
             inputImportarRespaldo.value = '';
             if (archivo) restaurarDesdeArchivo(archivo);
         });
+    }
+
+    // =========================================================================
+    // PERFIL DEL ESTUDIANTE (UNIVERSIDAD Y NOTA APROBATORIA)
+    // =========================================================================
+    const modalPerfil = document.getElementById('modal-perfil');
+    const formPerfil = document.getElementById('form-perfil');
+    const selectUniversidad = document.getElementById('perfil-universidad');
+    const grupoUnivPersonalizada = document.getElementById('grupo-univ-personalizada');
+    const grupoNotaFija = document.getElementById('grupo-nota-fija');
+
+    function renderizarPerfil() {
+        const perfil = obtenerPerfil();
+        const univ = obtenerUniversidad(perfil);
+        document.getElementById('perfil-univ-nombre').textContent = univ.nombre;
+        document.getElementById('perfil-estudiante').textContent = perfil.estudiante || 'Agrega tu nombre para los reportes';
+        document.getElementById('perfil-nota-aprobatoria').textContent = univ.notaAprobatoria;
+        mostrarSiglasUniversidad(univ);
+    }
+
+    function poblarSelectUniversidades() {
+        selectUniversidad.innerHTML = '';
+        Object.entries(UNIVERSIDADES).forEach(([id, u]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = u.personalizable ? u.nombre : `${u.siglas} — ${u.nombre}`;
+            selectUniversidad.appendChild(option);
+        });
+    }
+
+    // Muestra la nota fija (no editable) o los campos de "Otra universidad"
+    function actualizarVistaUniversidad() {
+        const base = UNIVERSIDADES[selectUniversidad.value];
+        const personalizable = !!base.personalizable;
+        grupoUnivPersonalizada.style.display = personalizable ? 'block' : 'none';
+        grupoNotaFija.style.display = personalizable ? 'none' : 'block';
+        document.getElementById('perfil-univ-nombre-input').required = personalizable;
+        document.getElementById('perfil-univ-nota').required = personalizable;
+        document.getElementById('perfil-nota-fija').textContent = base.notaAprobatoria;
+        document.getElementById('perfil-swatch-primario').style.background = base.colores.primario;
+        document.getElementById('perfil-swatch-secundario').style.background = base.colores.secundario;
+    }
+
+    function abrirModalPerfil() {
+        const perfil = obtenerPerfil();
+        document.getElementById('perfil-nombre').value = perfil.estudiante;
+        selectUniversidad.value = perfil.universidadId;
+        document.getElementById('perfil-univ-nombre-input').value = perfil.personalizada.nombre;
+        document.getElementById('perfil-univ-siglas').value = perfil.personalizada.siglas;
+        document.getElementById('perfil-univ-nota').value = perfil.personalizada.notaAprobatoria;
+        actualizarVistaUniversidad();
+        modalPerfil.style.display = 'flex';
+    }
+
+    function cerrarModalPerfil() {
+        modalPerfil.style.display = 'none';
+    }
+
+    if (modalPerfil && formPerfil) {
+        poblarSelectUniversidades();
+        selectUniversidad.addEventListener('change', actualizarVistaUniversidad);
+        document.getElementById('btn-editar-perfil').addEventListener('click', abrirModalPerfil);
+        document.getElementById('btn-cerrar-perfil').addEventListener('click', cerrarModalPerfil);
+        document.getElementById('btn-cancelar-perfil').addEventListener('click', cerrarModalPerfil);
+        modalPerfil.addEventListener('click', (e) => {
+            if (e.target === modalPerfil) cerrarModalPerfil();
+        });
+
+        formPerfil.addEventListener('submit', (e) => {
+            e.preventDefault();
+            guardarPerfil({
+                universidadId: selectUniversidad.value,
+                estudiante: document.getElementById('perfil-nombre').value,
+                personalizada: {
+                    nombre: document.getElementById('perfil-univ-nombre-input').value,
+                    siglas: document.getElementById('perfil-univ-siglas').value,
+                    notaAprobatoria: document.getElementById('perfil-univ-nota').value
+                }
+            });
+            cerrarModalPerfil();
+            renderizarPerfil();
+            // La nota aprobatoria cambia el estado de todos los cursos
+            actualizarDashboard();
+        });
+
+        renderizarPerfil();
     }
 
     // Alternar tema oscuro/claro

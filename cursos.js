@@ -920,10 +920,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        document.getElementById('btn-cerrar-sesion').addEventListener('click', async () => {
-            await cerrarSesionNube();
-            actualizarVistaSesion(null);
-            cerrarModalSesion();
+        document.getElementById('btn-cerrar-sesion').addEventListener('click', async (e) => {
+            e.currentTarget.disabled = true;
+            e.currentTarget.textContent = 'Guardando…';
+            await cerrarSesionYLimpiar();
+            window.location.reload();
         });
 
         actualizarVistaSesion(null);
@@ -931,9 +932,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function alCambiarSesion(usuario, evento) {
         actualizarVistaSesion(usuario);
+        if (!usuario && evento === 'SIGNED_OUT' && cuentaActivaId()) {
+            salirDeCuentaLocal();
+            window.location.reload();
+            return;
+        }
         // Al iniciar sesión se guardan en la cuenta el nombre y la universidad del perfil
         if (usuario && evento === 'SIGNED_IN') sincronizarPerfilNube();
     }
+
+    // Con sesión: dejar cargados los datos de la cuenta; si cambiaron, recargar para mostrarlos
+    iniciarSincronizacionNube({ preguntar: true }).then(recargar => {
+        if (recargar) window.location.reload();
+    });
 
     // Solo se descarga la librería si ya hay sesión o si se vuelve desde el enlace del correo
     if (haySesionPendiente()) {

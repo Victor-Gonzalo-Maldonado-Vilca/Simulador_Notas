@@ -6,7 +6,8 @@
 --
 -- Qué es compartido: universidades, asignaturas (universidad + código),
 -- docentes, calificaciones de docentes y comentarios de cursos.
--- Las notas de cada estudiante NO están aquí: siguen guardándose en su navegador.
+-- Qué es privado: datos_usuario guarda los cursos y notas de cada estudiante;
+-- solo su dueño puede leerlos o modificarlos.
 --
 -- Seguridad: todas las tablas usan Row Level Security (RLS). La clave pública de
 -- la app solo permite lo que dicen las políticas de abajo: leer lo compartido y,
@@ -190,6 +191,16 @@ create trigger al_reportar_comentario
     for each row execute function public.ocultar_comentario_reportado();
 
 -- --------------------------------------------------------------------------
+-- Datos personales de cada estudiante (privados): cursos, notas, perfil y
+-- catálogos propios, guardados como un solo documento JSON por usuario
+-- --------------------------------------------------------------------------
+create table if not exists public.datos_usuario (
+    usuario_id     uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+    datos          jsonb not null default '{}'::jsonb check (pg_column_size(datos) < 1048576),
+    actualizado_en timestamptz not null default now()
+);
+
+-- --------------------------------------------------------------------------
 -- Vistas públicas (solo datos agregados o anónimos)
 -- --------------------------------------------------------------------------
 
@@ -228,6 +239,7 @@ alter table public.docentes               enable row level security;
 alter table public.calificaciones_docente enable row level security;
 alter table public.comentarios            enable row level security;
 alter table public.reportes_comentario    enable row level security;
+alter table public.datos_usuario          enable row level security;
 
 -- Universidades: cualquiera puede leer
 drop policy if exists "universidades: leer" on public.universidades;
@@ -290,6 +302,20 @@ create policy "reportes: crear" on public.reportes_comentario
 drop policy if exists "reportes: ver los propios" on public.reportes_comentario;
 create policy "reportes: ver los propios" on public.reportes_comentario
     for select to authenticated using (usuario_id = (select auth.uid()));
+
+-- Datos personales: solo el dueño puede verlos, crearlos, cambiarlos o borrarlos
+drop policy if exists "datos_usuario: ver los propios" on public.datos_usuario;
+create policy "datos_usuario: ver los propios" on public.datos_usuario
+    for select to authenticated using (usuario_id = (select auth.uid()));
+drop policy if exists "datos_usuario: crear los propios" on public.datos_usuario;
+create policy "datos_usuario: crear los propios" on public.datos_usuario
+    for insert to authenticated with check (usuario_id = (select auth.uid()));
+drop policy if exists "datos_usuario: cambiar los propios" on public.datos_usuario;
+create policy "datos_usuario: cambiar los propios" on public.datos_usuario
+    for update to authenticated using (usuario_id = (select auth.uid())) with check (usuario_id = (select auth.uid()));
+drop policy if exists "datos_usuario: borrar los propios" on public.datos_usuario;
+create policy "datos_usuario: borrar los propios" on public.datos_usuario
+    for delete to authenticated using (usuario_id = (select auth.uid()));
 
 -- Permisos de las vistas públicas
 grant select on public.docentes_con_promedio to anon, authenticated;

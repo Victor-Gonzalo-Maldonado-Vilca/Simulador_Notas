@@ -15,6 +15,7 @@ const NUBE_CONFIG = {
 
 let clienteNube = null;
 let cargaLibreriaNube = null;
+let promesaClienteNube = null;
 
 /**
  * Descarga la librería de Supabase una sola vez (devuelve una promesa).
@@ -41,10 +42,17 @@ function cargarLibreriaNube() {
  */
 async function obtenerClienteNube() {
     if (clienteNube) return clienteNube;
+    // Una sola creación aunque varias partes de la página lo pidan a la vez
+    if (!promesaClienteNube) promesaClienteNube = crearClienteNube();
+    return promesaClienteNube;
+}
+
+async function crearClienteNube() {
     try {
         await cargarLibreriaNube();
     } catch (e) {
         console.warn(e.message);
+        promesaClienteNube = null; // reintentar cuando vuelva la conexión
         return null;
     }
     clienteNube = window.supabase.createClient(NUBE_CONFIG.url, NUBE_CONFIG.clavePublica, {
@@ -176,4 +184,309 @@ async function sincronizarPerfilNube() {
     if (perfil.universidadId !== 'otra') cambios.universidad_id = perfil.universidadId;
     const { error } = await cliente.from('perfiles').update(cambios).eq('id', usuario.id);
     if (error) console.warn('No se pudo sincronizar el perfil:', error.message);
+}
+
+// ==========================================================================
+// DATOS PERSONALES POR CUENTA (cursos, notas, perfil y catálogos propios)
+//
+// - Sin sesión ("invitado"): los datos viven solo en este navegador, como siempre.
+// - Al iniciar sesión: los datos de invitado se apartan y se cargan los de la cuenta.
+// - Con sesión: cada cambio se sube a la tabla privada datos_usuario.
+// - Al cerrar sesión: se sube lo pendiente, se borran los datos de la cuenta de este
+//   navegador y vuelven los de invitado.
+// ==========================================================================
+const CLAVES_DATOS_PERSONALES = [STORAGE_KEY, DOCENTES_KEY, ASIGNATURAS_KEY, PERFIL_KEY, ACTIVE_COURSE_KEY];
+const SUFIJO_INVITADO = '__invitado';
+const CUENTA_ACTIVA_KEY = 'unsa_simulador_cuenta_activa';     // id de la cuenta cuyos datos están cargados
+const ACTUALIZADO_KEY = 'unsa_simulador_actualizado';         // último cambio local (ms)
+const SINCRONIZADO_KEY = 'unsa_simulador_sincronizado';       // versión que coincide con la nube (ms)
+const ESPERA_SUBIDA_MS = 1500;
+
+let temporizadorSubida = null;
+let preparandoCuenta = false;
+
+function leerClave(clave) {
+    try { return localStorage.getItem(clave); } catch (e) { return null; }
+}
+
+function escribirClave(clave, valor) {
+    try {
+        if (valor === null || valor === undefined) localStorage.removeItem(clave);
+        else localStorage.setItem(clave, String(valor));
+    } catch (e) { /* almacenamiento lleno o bloqueado */ }
+}
+
+function leerJSON(clave, porDefecto) {
+    try {
+        const valor = JSON.parse(leerClave(clave));
+        return valor === null ? porDefecto : valor;
+    } catch (e) {
+        return porDefecto;
+    }
+}
+
+function cuentaActivaId() {
+    return leerClave(CUENTA_ACTIVA_KEY);
+}
+
+// Aparta los datos de invitado para recuperarlos al cerrar sesión
+function apartarDatosInvitado() {
+    CLAVES_DATOS_PERSONALES.forEach(clave => escribirClave(clave + SUFIJO_INVITADO, leerClave(clave)));
+}
+
+function restaurarDatosInvitado() {
+    CLAVES_DATOS_PERSONALES.forEach(clave => {
+        escribirClave(clave, leerClave(clave + SUFIJO_INVITADO));
+        escribirClave(clave + SUFIJO_INVITADO, null);
+    });
+}
+
+function limpiarDatosActivos() {
+    CLAVES_DATOS_PERSONALES.forEach(clave => escribirClave(clave, null));
+}
+
+/**
+ * Documento que se guarda en la nube (no incluye el tema ni la sesión).
+ */
+function exportarDatosPersonales() {
+    return {
+        version: 1,
+        perfil: obtenerPerfil(),
+        cursos: leerJSON(STORAGE_KEY, []),
+        docentes: obtenerDocentes(),
+        asignaturas: obtenerAsignaturas()
+    };
+}
+
+/**
+ * Carga un documento de la nube en este navegador (sin volver a subirlo).
+ */
+function aplicarDatosPersonales(datos) {
+    const d = datos && typeof datos === 'object' ? datos : {};
+    let cursos = [];
+    if (Array.isArray(d.cursos) && d.cursos.length > 0) {
+        try { cursos = validarRespaldo(d.cursos); } catch (e) { cursos = []; }
+    }
+    // '[]' explícito: una cuenta sin cursos no debe mostrar los cursos de ejemplo
+    escribirClave(STORAGE_KEY, JSON.stringify(cursos));
+    escribirClave(DOCENTES_KEY, JSON.stringify(validarDocentes(d.docentes)));
+    escribirClave(ASIGNATURAS_KEY, JSON.stringify(validarAsignaturas(d.asignaturas)));
+    escribirClave(PERFIL_KEY, JSON.stringify(normalizarPerfil(d.perfil)));
+    escribirClave(ACTIVE_COURSE_KEY, null);
+    aplicarColoresUniversidad();
+}
+
+async function descargarDatosNube(usuario) {
+    const cliente = await clienteNubeObligatorio();
+    const { data, error } = await cliente
+        .from('datos_usuario')
+        .select('datos, actualizado_en')
+        .eq('usuario_id', usuario.id)
+        .maybeSingle();
+    if (error) throw new Error(traducirErrorNube(error));
+    return data;
+}
+
+/**
+ * Sube los datos locales a la cuenta activa (si la sesión sigue siendo de esa cuenta).
+ */
+async function subirDatosNube() {
+    clearTimeout(temporizadorSubida);
+    temporizadorSubida = null;
+    const cuenta = cuentaActivaId();
+    if (!cuenta) return false;
+    const cliente = await obtenerClienteNube();
+    const usuario = await obtenerUsuarioNube();
+    if (!cliente || !usuario || usuario.id !== cuenta) return false;
+
+    const actualizado = Number(leerClave(ACTUALIZADO_KEY)) || Date.now();
+    const { error } = await cliente.from('datos_usuario').upsert({
+        usuario_id: usuario.id,
+        datos: exportarDatosPersonales(),
+        actualizado_en: new Date(actualizado).toISOString()
+    });
+    if (error) {
+        console.warn('No se pudieron guardar los datos en la cuenta:', error.message);
+        return false;
+    }
+    escribirClave(SINCRONIZADO_KEY, actualizado);
+    return true;
+}
+
+/**
+ * storage.js llama a esta función en cada cambio de datos personales.
+ */
+function alCambiarDatosLocales() {
+    escribirClave(ACTUALIZADO_KEY, Date.now());
+    if (!cuentaActivaId()) return;
+    clearTimeout(temporizadorSubida);
+    temporizadorSubida = setTimeout(subirDatosNube, ESPERA_SUBIDA_MS);
+}
+
+// Si en otra pestaña se inicia o cierra sesión, esta recarga para no mezclar los datos
+// de la cuenta con los de invitado
+window.addEventListener('storage', (e) => {
+    if (e.key === CUENTA_ACTIVA_KEY) window.location.reload();
+});
+
+// Si se cierra o cambia de pestaña con cambios pendientes, subirlos en ese momento
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && temporizadorSubida) subirDatosNube();
+});
+
+/**
+ * Agrega a la cuenta los cursos de invitado que no estén ya (mismo id o mismo código).
+ * Los docentes se registran en el catálogo de la cuenta para no duplicarlos.
+ */
+function fusionarCursosInvitado(cursosInvitado) {
+    const docentesInvitado = leerJSON(DOCENTES_KEY + SUFIJO_INVITADO, []);
+    const cursos = leerJSON(STORAGE_KEY, []);
+    const ids = new Set(cursos.map(c => c.id));
+    const codigos = new Set(cursos.map(c => normalizarCodigo(c.codigo)).filter(Boolean));
+    let agregados = 0;
+
+    cursosInvitado.forEach(curso => {
+        const codigo = normalizarCodigo(curso.codigo);
+        if (ids.has(curso.id) || (codigo && codigos.has(codigo))) return;
+        const copia = { ...curso };
+        const docenteInvitado = docentesInvitado.find(d => d.id === curso.docenteId);
+        const nombreDocente = docenteInvitado ? docenteInvitado.nombre : curso.profesor;
+        if (nombreDocente) {
+            const docente = registrarDocente(nombreDocente);
+            if (docente) {
+                if (docenteInvitado && docenteInvitado.calificacion && !docente.calificacion) {
+                    calificarDocente(docente.id, docenteInvitado.calificacion);
+                }
+                copia.docenteId = docente.id;
+                copia.profesor = docente.nombre;
+            }
+        }
+        delete copia.asignaturaId; // se vuelve a vincular con el catálogo de la cuenta
+        cursos.push(copia);
+        ids.add(copia.id);
+        if (codigo) codigos.add(codigo);
+        agregados++;
+    });
+
+    guardarTodosLosCursos(cursos);
+    migrarAsignaturas();
+    return agregados;
+}
+
+function cursosPropiosDeInvitado() {
+    return leerJSON(STORAGE_KEY + SUFIJO_INVITADO, [])
+        .filter(c => c && !String(c.id).startsWith('curso_demo_'));
+}
+
+/**
+ * Deja cargados en este navegador los datos de la cuenta. Devuelve true si cambiaron
+ * (la página debe recargarse para mostrarlos).
+ */
+async function prepararDatosDeCuenta(usuario, { preguntar = false } = {}) {
+    if (preparandoCuenta) return false;
+    preparandoCuenta = true;
+    try {
+        const cuenta = cuentaActivaId();
+
+        // Misma cuenta de antes: traer cambios hechos en otro dispositivo o subir los locales
+        if (cuenta === usuario.id) {
+            const remoto = await descargarDatosNube(usuario);
+            const local = Number(leerClave(ACTUALIZADO_KEY)) || 0;
+            const sincronizado = Number(leerClave(SINCRONIZADO_KEY)) || 0;
+            if (remoto) {
+                const fechaRemota = Date.parse(remoto.actualizado_en);
+                if (fechaRemota > sincronizado && local <= sincronizado) {
+                    aplicarDatosPersonales(remoto.datos);
+                    escribirClave(ACTUALIZADO_KEY, fechaRemota);
+                    escribirClave(SINCRONIZADO_KEY, fechaRemota);
+                    return true;
+                }
+            }
+            if (!remoto || local > sincronizado) await subirDatosNube();
+            return false;
+        }
+
+        // Primero se descarga (si falla, el navegador queda como estaba)
+        const remoto = await descargarDatosNube(usuario);
+
+        // Datos de otra cuenta que no cerró sesión: ya están en su nube, se quitan de aquí.
+        // Si no había cuenta, los datos actuales son de invitado y se apartan.
+        if (cuenta) limpiarDatosActivos();
+        else apartarDatosInvitado();
+        const propios = cursosPropiosDeInvitado();
+
+        if (remoto) {
+            aplicarDatosPersonales(remoto.datos);
+            const fechaRemota = Date.parse(remoto.actualizado_en);
+            escribirClave(ACTUALIZADO_KEY, fechaRemota);
+            escribirClave(SINCRONIZADO_KEY, fechaRemota);
+            // Se marca la cuenta al final: otras pestañas recargan al ver este cambio
+            escribirClave(CUENTA_ACTIVA_KEY, usuario.id);
+            const enCuenta = leerJSON(STORAGE_KEY, []).length;
+            if (propios.length > 0 && preguntar && confirm(
+                `Tu cuenta ya tiene ${enCuenta} curso(s).\n¿Agregar también los ${propios.length} curso(s) que tenías en este navegador?\n(Los que tengan el mismo código no se duplican.)`)) {
+                fusionarCursosInvitado(propios);
+                await subirDatosNube();
+            }
+        } else {
+            // Cuenta nueva: empezar con el perfil de invitado y, si se acepta, con sus cursos
+            const importar = propios.length > 0 && preguntar && confirm(
+                `¿Guardar en tu cuenta los ${propios.length} curso(s) que tienes en este navegador?\n` +
+                'Si eliges "Cancelar", tu cuenta empezará sin cursos (los de este navegador no se pierden).');
+            CLAVES_DATOS_PERSONALES.forEach(clave => escribirClave(clave, leerClave(clave + SUFIJO_INVITADO)));
+            if (!importar) {
+                escribirClave(STORAGE_KEY, '[]');
+                escribirClave(ACTIVE_COURSE_KEY, null);
+            } else {
+                // Los cursos pasan a la cuenta: no quedan visibles para quien use este navegador sin sesión
+                escribirClave(STORAGE_KEY + SUFIJO_INVITADO, '[]');
+            }
+            escribirClave(ACTUALIZADO_KEY, Date.now());
+            escribirClave(CUENTA_ACTIVA_KEY, usuario.id);
+            await subirDatosNube();
+        }
+        return true;
+    } finally {
+        preparandoCuenta = false;
+    }
+}
+
+/**
+ * Cierra sesión sin perder cambios: sube lo pendiente, quita los datos de la cuenta
+ * de este navegador y recupera los de invitado.
+ */
+async function cerrarSesionYLimpiar() {
+    await subirDatosNube();
+    await cerrarSesionNube();
+    salirDeCuentaLocal();
+}
+
+function salirDeCuentaLocal() {
+    limpiarDatosActivos();
+    restaurarDatosInvitado();
+    [CUENTA_ACTIVA_KEY, ACTUALIZADO_KEY, SINCRONIZADO_KEY].forEach(clave => escribirClave(clave, null));
+}
+
+/**
+ * Se llama al abrir cada página: deja listos los datos de la cuenta (o de invitado si la
+ * sesión ya no es válida). Devuelve true si la página debe recargarse.
+ */
+async function iniciarSincronizacionNube({ preguntar = false } = {}) {
+    if (!haySesionPendiente() && !cuentaActivaId()) return false;
+    const cliente = await obtenerClienteNube();
+    if (!cliente) return false; // sin internet: se sigue usando la copia local de la cuenta
+    const usuario = await obtenerUsuarioNube();
+    if (!usuario) {
+        if (cuentaActivaId()) {
+            salirDeCuentaLocal(); // la sesión venció: no dejar visibles los datos de la cuenta
+            return true;
+        }
+        return false;
+    }
+    try {
+        return await prepararDatosDeCuenta(usuario, { preguntar });
+    } catch (e) {
+        console.warn('No se pudo sincronizar con la cuenta:', e.message);
+        return false;
+    }
 }

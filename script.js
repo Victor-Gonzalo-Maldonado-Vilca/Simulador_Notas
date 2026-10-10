@@ -716,6 +716,10 @@ function configurarUniversidadEnSimulador() {
 
 // Inicializar al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
+    // Con sesión: traer cambios de la cuenta hechos en otro dispositivo
+    iniciarSincronizacionNube().then(recargar => {
+        if (recargar) window.location.reload();
+    });
     configurarUniversidadEnSimulador();
     inicializarCurso();
     actualizarBotonesTema(obtenerTemaActual());

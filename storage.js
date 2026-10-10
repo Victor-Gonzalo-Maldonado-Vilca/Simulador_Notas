@@ -17,6 +17,13 @@ const UNIVERSIDADES = {
 };
 
 /**
+ * Avisa que cambiaron los datos personales. Con sesión iniciada, nube.js los sube a la cuenta.
+ */
+function notificarCambioLocal() {
+    if (typeof alCambiarDatosLocales === 'function') alCambiarDatosLocales();
+}
+
+/**
  * Normaliza un perfil (guardado o importado) a una forma válida.
  */
 function normalizarPerfil(datos) {
@@ -46,6 +53,7 @@ function guardarPerfil(perfil) {
     const normalizado = normalizarPerfil(perfil);
     try {
         localStorage.setItem(PERFIL_KEY, JSON.stringify(normalizado));
+        notificarCambioLocal();
     } catch (e) {
         console.error("Error al guardar el perfil en localStorage:", e);
     }
@@ -239,6 +247,7 @@ function obtenerCursos() {
 function guardarTodosLosCursos(cursos) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cursos));
+        notificarCambioLocal();
     } catch (e) {
         console.error("Error al guardar cursos en localStorage:", e);
     }
@@ -579,6 +588,7 @@ function obtenerDocentes() {
 function guardarDocentes(lista) {
     try {
         localStorage.setItem(DOCENTES_KEY, JSON.stringify(lista));
+        notificarCambioLocal();
     } catch (e) {
         console.error("Error al guardar docentes en localStorage:", e);
     }
@@ -755,6 +765,7 @@ function obtenerAsignaturas() {
 function guardarAsignaturas(lista) {
     try {
         localStorage.setItem(ASIGNATURAS_KEY, JSON.stringify(lista));
+        notificarCambioLocal();
     } catch (e) {
         console.error("Error al guardar asignaturas en localStorage:", e);
     }

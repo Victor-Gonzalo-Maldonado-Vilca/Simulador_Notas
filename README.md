@@ -2,7 +2,7 @@
 
 Aplicación web para estudiantes universitarios que permite gestionar varios cursos a la vez, calcular promedios ponderados, predecir la nota que se necesita en las evaluaciones pendientes y generar reportes en PDF. Está pensada para el sistema de fases, evaluaciones continuas y exámenes parciales de la UNSA, y se adapta a otras universidades mediante el perfil del estudiante.
 
-Funciona por completo en el navegador: no necesita instalación, servidor ni conexión a internet (salvo para cargar la tipografía). Los datos se guardan en el `localStorage` del navegador.
+Funciona en el navegador sin instalación: sin cuenta, los datos se guardan en el `localStorage` del navegador y la app funciona incluso sin internet. Con una cuenta (inicio de sesión con enlace al correo), los cursos y notas se guardan de forma privada en la nube y se sincronizan entre dispositivos.
 
 ## 🚀 Cómo usarlo
 
@@ -82,8 +82,9 @@ Simulador_Notas/
 
 ## 💾 Datos y privacidad
 
-- Todo se guarda **solo en tu navegador** (`localStorage`); nada se envía a ningún servidor.
-- Si borras los datos del navegador, se pierden las asignaturas. Usa **Respaldo** periódicamente para tener una copia en archivo.
+- **Sin cuenta:** todo se guarda **solo en tu navegador** (`localStorage`). Si borras los datos del navegador, se pierden las asignaturas; usa **Respaldo** para tener una copia en archivo.
+- **Con cuenta:** tus cursos, notas, docentes y perfil se guardan en la tabla privada `datos_usuario` de Supabase y se sincronizan automáticamente entre dispositivos. Solo tú puedes leerlos o modificarlos (Row Level Security). La primera vez que inicias sesión puedes llevar a tu cuenta los cursos que ya tenías en el navegador.
+- **Al cerrar sesión** se suben los cambios pendientes y tus datos se quitan de ese navegador, que vuelve a los datos sin cuenta. Útil en computadoras compartidas.
 - Para pasar tus datos a otro dispositivo: **Respaldo** en el original y **Restaurar** en el nuevo.
 - Las calificaciones de docentes y los comentarios son **personales**: por ahora no se comparten con otros estudiantes. Los datos están organizados (docentes, calificaciones y comentarios por separado) para poder conectarlos más adelante a una base de datos compartida.
 
@@ -91,6 +92,6 @@ Simulador_Notas/
 
 La siguiente etapa es compartir el catálogo de asignaturas, los docentes, sus calificaciones y los comentarios entre estudiantes de la misma universidad, usando [Supabase](https://supabase.com). Las notas de cada estudiante seguirán guardándose solo en su navegador.
 
-- `supabase/schema.sql` crea las tablas y sus reglas de seguridad: cualquiera puede leer lo compartido; para agregar, calificar o comentar se necesita iniciar sesión, y cada usuario solo puede modificar lo suyo. Los comentarios son anónimos para los demás y se ocultan automáticamente al recibir 3 reportes.
+- `supabase/schema.sql` crea las tablas y sus reglas de seguridad: `datos_usuario` es privada (solo su dueño la ve); en lo compartido, cualquiera puede leer; para agregar, calificar o comentar se necesita iniciar sesión, y cada usuario solo puede modificar lo suyo. Los comentarios son anónimos para los demás y se ocultan automáticamente al recibir 3 reportes.
 - Para instalarlo: en Supabase, **SQL Editor → New query**, pegar el archivo completo y **Run**. Se puede ejecutar más de una vez.
 - `nube.js` contiene la URL del proyecto y la clave pública (*publishable*), que está pensada para ir en el navegador. La contraseña de la base de datos y la *secret key* nunca deben ir en el código.

@@ -529,6 +529,194 @@ function calcularMetricasGlobales(cursos) {
 }
 
 // ==========================================================================
+// CATÁLOGO DE DOCENTES Y COMENTARIOS DE CURSOS
+// Cada docente se guarda una sola vez y los cursos lo referencian por docenteId.
+// La forma de los datos (docentes / calificación / comentarios) está pensada para
+// poder sincronizarla más adelante con una base de datos compartida.
+// ==========================================================================
+const DOCENTES_KEY = 'unsa_simulador_docentes_v1';
+const MAX_COMENTARIO = 500;
+
+// Títulos que no forman parte del nombre al comparar ("Dr. Juan Pérez" = "Juan Perez")
+const TITULOS_DOCENTE = new Set([
+    'dr', 'dra', 'doctor', 'doctora', 'mg', 'mgtr', 'mag', 'magister', 'ing', 'lic', 'licenciado',
+    'licenciada', 'msc', 'phd', 'prof', 'profesor', 'profesora', 'ingeniero', 'ingeniera', 'abog', 'arq', 'econ'
+]);
+
+/**
+ * Normaliza un nombre para compararlo: sin tildes, en minúsculas, sin signos ni títulos.
+ */
+function normalizarNombreDocente(nombre) {
+    return String(nombre || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(palabra => palabra && !TITULOS_DOCENTE.has(palabra))
+        .join(' ');
+}
+
+function obtenerDocentes() {
+    try {
+        const lista = JSON.parse(localStorage.getItem(DOCENTES_KEY));
+        return Array.isArray(lista) ? lista : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function guardarDocentes(lista) {
+    try {
+        localStorage.setItem(DOCENTES_KEY, JSON.stringify(lista));
+    } catch (e) {
+        console.error("Error al guardar docentes en localStorage:", e);
+    }
+}
+
+function obtenerDocentePorId(id) {
+    if (!id) return null;
+    return obtenerDocentes().find(d => d.id === id) || null;
+}
+
+function buscarDocentePorNombre(nombre) {
+    const normalizado = normalizarNombreDocente(nombre);
+    if (!normalizado) return null;
+    return obtenerDocentes().find(d => d.nombreNormalizado === normalizado) || null;
+}
+
+/**
+ * Sugerencias para el campo "Docente": cada palabra escrita debe ser el inicio de
+ * alguna palabra del nombre ("per lu" encuentra a "Luis Pérez").
+ */
+function buscarDocentes(texto, limite = 6) {
+    const consulta = normalizarNombreDocente(texto).split(' ').filter(Boolean);
+    if (consulta.length === 0) return [];
+    return obtenerDocentes()
+        .filter(d => {
+            const palabras = d.nombreNormalizado.split(' ');
+            return consulta.every(q => palabras.some(p => p.startsWith(q)));
+        })
+        .sort((a, b) => {
+            // Primero los que empiezan igual que lo escrito, luego alfabético
+            const inicio = consulta.join(' ');
+            const aInicia = a.nombreNormalizado.startsWith(inicio) ? 0 : 1;
+            const bInicia = b.nombreNormalizado.startsWith(inicio) ? 0 : 1;
+            return aInicia - bInicia || a.nombre.localeCompare(b.nombre, 'es');
+        })
+        .slice(0, limite);
+}
+
+/**
+ * Devuelve el docente con ese nombre si ya existe; si no, lo registra.
+ */
+function registrarDocente(nombre) {
+    const limpio = String(nombre || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    if (!normalizarNombreDocente(limpio)) return null;
+    const existente = buscarDocentePorNombre(limpio);
+    if (existente) return existente;
+
+    const docente = {
+        id: `doc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        nombre: limpio,
+        nombreNormalizado: normalizarNombreDocente(limpio),
+        calificacion: 0,
+        fechaRegistro: new Date().toISOString()
+    };
+    guardarDocentes([...obtenerDocentes(), docente]);
+    return docente;
+}
+
+function calificarDocente(id, calificacion) {
+    const docentes = obtenerDocentes();
+    const docente = docentes.find(d => d.id === id);
+    if (!docente) return;
+    docente.calificacion = normalizarCalificacion(calificacion);
+    guardarDocentes(docentes);
+}
+
+function contarCursosDeDocente(id, cursos = obtenerCursos()) {
+    return cursos.filter(c => c.docenteId === id).length;
+}
+
+/**
+ * Docente de un curso ({ id, nombre, calificacion }) o null.
+ * Usa los campos antiguos del curso si todavía no fue migrado al catálogo.
+ */
+function obtenerDocenteDeCurso(curso) {
+    const docente = obtenerDocentePorId(curso.docenteId);
+    if (docente) return { id: docente.id, nombre: docente.nombre, calificacion: normalizarCalificacion(docente.calificacion) };
+    if (curso.profesor) return { id: null, nombre: curso.profesor, calificacion: normalizarCalificacion(curso.calificacionProfesor) };
+    return null;
+}
+
+/**
+ * Pasa al catálogo los docentes escritos en cursos antiguos (campo "profesor").
+ * Es idempotente: solo toca cursos sin docenteId o con un docenteId que ya no existe.
+ */
+function migrarDocentes() {
+    const cursos = obtenerCursos();
+    const idsExistentes = new Set(obtenerDocentes().map(d => d.id));
+    let cambios = false;
+    cursos.forEach(curso => {
+        if (!curso.profesor || (curso.docenteId && idsExistentes.has(curso.docenteId))) return;
+        const docente = registrarDocente(curso.profesor);
+        if (!docente) return;
+        const calificacionAntigua = normalizarCalificacion(curso.calificacionProfesor);
+        if (calificacionAntigua > 0 && !docente.calificacion) {
+            calificarDocente(docente.id, calificacionAntigua);
+        }
+        curso.docenteId = docente.id;
+        curso.profesor = docente.nombre;
+        delete curso.calificacionProfesor;
+        cambios = true;
+    });
+    if (cambios) guardarTodosLosCursos(cursos);
+}
+
+/**
+ * Agrega un comentario al curso (no lo guarda: llamar a guardarCurso después).
+ */
+function agregarComentario(curso, texto) {
+    const limpio = String(texto || '').trim().slice(0, MAX_COMENTARIO);
+    if (!limpio) return null;
+    const comentario = {
+        id: `com_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        texto: limpio,
+        fecha: new Date().toISOString()
+    };
+    curso.comentarios = [...(Array.isArray(curso.comentarios) ? curso.comentarios : []), comentario];
+    return comentario;
+}
+
+function eliminarComentario(curso, comentarioId) {
+    curso.comentarios = (Array.isArray(curso.comentarios) ? curso.comentarios : []).filter(c => c.id !== comentarioId);
+}
+
+/**
+ * Valida la lista de docentes de un respaldo (descarta entradas inválidas).
+ */
+function validarDocentes(lista) {
+    if (!Array.isArray(lista)) return [];
+    const ids = new Set();
+    const nombres = new Set();
+    return lista.filter(d => {
+        if (!d || typeof d.id !== 'string' || !d.id || typeof d.nombre !== 'string') return false;
+        const normalizado = normalizarNombreDocente(d.nombre);
+        if (!normalizado || ids.has(d.id) || nombres.has(normalizado)) return false;
+        ids.add(d.id);
+        nombres.add(normalizado);
+        return true;
+    }).map(d => ({
+        id: d.id,
+        nombre: d.nombre.trim().slice(0, 80),
+        nombreNormalizado: normalizarNombreDocente(d.nombre),
+        calificacion: normalizarCalificacion(d.calificacion),
+        fechaRegistro: typeof d.fechaRegistro === 'string' ? d.fechaRegistro : new Date().toISOString()
+    }));
+}
+
+// ==========================================================================
 // RESPALDO DE DATOS (EXPORTAR / RESTAURAR JSON)
 // ==========================================================================
 const RESPALDO_APP = 'unsa-simulador-notas';
@@ -543,6 +731,7 @@ function crearRespaldo() {
         version: RESPALDO_VERSION,
         fechaExportacion: new Date().toISOString(),
         perfil: obtenerPerfil(),
+        docentes: obtenerDocentes(),
         cursos: obtenerCursos()
     };
 }
@@ -589,8 +778,18 @@ function validarRespaldo(datos) {
             creditos: parseInt(c.creditos) || 3,
             // Meta vacía = sigue la nota aprobatoria de la universidad
             notaMeta: c.notaMeta === '' || c.notaMeta === null || c.notaMeta === undefined ? '' : parsearNotaMeta(c.notaMeta),
+            docenteId: typeof c.docenteId === 'string' ? c.docenteId : '',
             profesor: typeof c.profesor === 'string' ? c.profesor.trim().slice(0, 80) : '',
             calificacionProfesor: normalizarCalificacion(c.calificacionProfesor),
+            comentarios: Array.isArray(c.comentarios)
+                ? c.comentarios
+                    .filter(com => com && typeof com.texto === 'string' && com.texto.trim())
+                    .map((com, j) => ({
+                        id: typeof com.id === 'string' && com.id ? com.id : `com_${Date.now()}_${i}_${j}`,
+                        texto: com.texto.trim().slice(0, MAX_COMENTARIO),
+                        fecha: typeof com.fecha === 'string' ? com.fecha : new Date().toISOString()
+                    }))
+                : [],
             notas,
             pesos,
             fechaModificacion: typeof c.fechaModificacion === 'string' ? c.fechaModificacion : new Date().toISOString()
@@ -601,9 +800,12 @@ function validarRespaldo(datos) {
 /**
  * Reemplaza todas las asignaturas guardadas por las de un respaldo ya validado.
  */
-function restaurarCursos(cursos) {
+function restaurarCursos(cursos, docentes) {
+    if (docentes) guardarDocentes(validarDocentes(docentes));
     guardarTodosLosCursos(cursos);
     localStorage.removeItem(ACTIVE_COURSE_KEY);
+    // Cursos con docentes que no vinieron en el catálogo del respaldo
+    migrarDocentes();
 }
 
 // ==========================================================================
@@ -686,5 +888,6 @@ function actualizarBotonesTema(tema) {
         document.documentElement.setAttribute('data-theme', 'dark');
     }
     aplicarColoresUniversidad();
+    migrarDocentes();
 })();
 

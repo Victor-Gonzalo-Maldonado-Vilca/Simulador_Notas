@@ -22,7 +22,8 @@ Funciona por completo en el navegador: no necesita instalación, servidor ni con
 
 ### 2. Panel de asignaturas (`index.html`)
 - **Gestión de asignaturas:** crear, editar y eliminar cursos (nombre, código, créditos, docente y meta personal).
-- **Docente con calificación:** registra al docente de cada curso y califícalo de 1 a 5 estrellas.
+- **Catálogo de docentes con sugerencias:** al escribir el docente aparecen los que ya registraste (sin importar tildes, mayúsculas ni títulos como "Dr." o "Ing."), con su calificación y número de cursos. Así cada docente queda registrado una sola vez.
+- **Calificación del docente:** de 1 a 5 estrellas; se aplica al docente en todos tus cursos.
 - **Métricas del semestre:** cursos matriculados, acumulado ponderado por créditos, metas aseguradas y cursos en seguimiento.
 - **Tarjetas con diagnóstico:** progreso evaluado, puntaje acumulado, promedio parcial, techo máximo y estado de cada curso.
 - **Buscador en tiempo real** por nombre o código (el filtro se conserva al editar o eliminar).
@@ -36,6 +37,7 @@ Funciona por completo en el navegador: no necesita instalación, servidor ni con
 - **Métricas:** puntaje acumulado, promedio parcial (solo sobre lo evaluado), mejor caso (sacando 20), piso mínimo (sacando 00) y meta.
 - **Gráfico de escenarios interactivo:** muestra tu nota final según el promedio que obtengas en lo pendiente, con las líneas de nota aprobatoria y meta. Se puede recorrer con el cursor o con las flechas del teclado, e incluye una tabla de escenarios.
 - **Validaciones:** las notas fuera de la escala 0–20 no entran al cálculo.
+- **Comentarios del curso:** anota detalles de la asignatura, el docente o las evaluaciones; se muestran del más reciente al más antiguo.
 - **Selector rápido de asignaturas** y **autoguardado** en tiempo real.
 - **Ficha de la asignatura en PDF.**
 
@@ -64,7 +66,7 @@ Simulador_Notas/
 ├── index.html        # Panel de asignaturas, perfil del estudiante y consolidado semestral
 ├── simulador.html    # Simulador predictivo por asignatura y ficha en PDF
 ├── storage.js        # Datos y lógica compartida: persistencia, catálogo de universidades, perfil,
-│                     # motor de cálculo, respaldo JSON y tema oscuro
+│                     # catálogo de docentes, comentarios, motor de cálculo, respaldo JSON y tema oscuro
 ├── cursos.js         # Controlador del panel: tarjetas, formularios, perfil, respaldo y consolidado
 ├── script.js         # Controlador del simulador: formulario, resultados, autoguardado y ficha PDF
 ├── grafico.js        # Gráfico de escenarios (SVG) para el simulador y el PDF
@@ -77,3 +79,4 @@ Simulador_Notas/
 - Todo se guarda **solo en tu navegador** (`localStorage`); nada se envía a ningún servidor.
 - Si borras los datos del navegador, se pierden las asignaturas. Usa **Respaldo** periódicamente para tener una copia en archivo.
 - Para pasar tus datos a otro dispositivo: **Respaldo** en el original y **Restaurar** en el nuevo.
+- Las calificaciones de docentes y los comentarios son **personales**: por ahora no se comparten con otros estudiantes. Los datos están organizados (docentes, calificaciones y comentarios por separado) para poder conectarlos más adelante a una base de datos compartida.

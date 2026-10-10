@@ -239,12 +239,20 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="curso-profesor">Docente</label>
-                            <input type="text" id="curso-profesor" maxlength="80" placeholder="Ej: Dr. Juan Pérez">
+                            <div class="combo">
+                                <input type="text" id="curso-profesor" maxlength="80" placeholder="Escribe para buscar o registrar"
+                                       autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                       aria-controls="curso-profesor-sugerencias">
+                                <ul class="combo-list" id="curso-profesor-sugerencias" role="listbox" hidden></ul>
+                            </div>
+                            <input type="hidden" id="curso-docente-id" value="">
+                            <small class="form-hint" id="curso-profesor-estado" aria-live="polite"></small>
                         </div>
                         <div class="form-group">
                             <label id="lbl-calificacion-profesor">Calificación del Docente</label>
                             <div class="star-rating" id="curso-profesor-estrellas" role="radiogroup" aria-labelledby="lbl-calificacion-profesor"></div>
                             <input type="hidden" id="curso-profesor-calificacion" value="0">
+                            <small class="form-hint">Se aplica al docente en todos tus cursos.</small>
                         </div>
                     </div>
 

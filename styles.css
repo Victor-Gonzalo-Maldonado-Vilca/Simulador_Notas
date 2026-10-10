@@ -1552,6 +1552,170 @@ input[type="number"],
   color: #e2e8f0;
 }
 
+/* Comentarios del curso (simulador) */
+.comments-card {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.comments-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.comments-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-title);
+}
+
+.comments-sub {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+.comments-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 4.5rem;
+  padding: 0.6rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-title);
+  background: var(--surface-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  outline: none;
+}
+
+.comments-form textarea:focus {
+  border-color: var(--border-focus);
+}
+
+.comments-form-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.comments-counter {
+  font-size: 0.725rem;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.comments-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.comment-item {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--univ-primario, var(--inst-granate));
+  border-radius: var(--radius-xs);
+  padding: 0.65rem 0.8rem;
+}
+
+.comment-text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.comment-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+.comment-delete {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: var(--radius-xs);
+}
+
+.comment-delete:hover {
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+}
+
+.comments-empty {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.course-comments-count {
+  white-space: nowrap;
+}
+
+/* Campo con sugerencias (docente) */
+.combo {
+  position: relative;
+}
+
+.combo-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  max-height: 15rem;
+  overflow-y: auto;
+  background: var(--surface-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-modal);
+  padding: 0.25rem;
+}
+
+.combo-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.combo-option:hover,
+.combo-option.activa {
+  background: var(--surface-subtle);
+}
+
+.combo-option-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-title);
+}
+
+.combo-option-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
 /* ==========================================================================
    MODAL DE ASIGNATURAS Y FORMULARIOS
    ========================================================================== */
@@ -1562,9 +1726,10 @@ input[type="number"],
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(2px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1rem;
+  overflow-y: auto;
   z-index: 9999;
 }
 
@@ -1577,6 +1742,8 @@ input[type="number"],
   box-shadow: var(--shadow-modal);
   border: 1px solid var(--border-medium);
   border-top: 4px solid var(--inst-navy);
+  /* Centrado vertical que, si no cabe, empieza arriba y permite desplazarse */
+  margin: auto;
 }
 
 .modal-header {

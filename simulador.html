@@ -389,6 +389,24 @@
                     </details>
                 </div>
             </section>
+
+            <!-- Comentarios del curso -->
+            <section class="comments-card" id="seccion-comentarios">
+                <div class="comments-head">
+                    <h2 class="comments-title">Comentarios del curso</h2>
+                    <span class="comments-sub">Tus notas sobre la asignatura, el docente o las evaluaciones. Se guardan solo en este navegador.</span>
+                </div>
+                <form id="form-comentario" class="comments-form">
+                    <textarea id="comentario-texto" maxlength="500" rows="3" aria-label="Nuevo comentario"
+                              placeholder="Ej: El segundo parcial entra hasta integrales dobles; el docente valora mucho el procedimiento."></textarea>
+                    <div class="comments-form-foot">
+                        <span id="comentario-contador" class="comments-counter">0 / 500</span>
+                        <button type="submit" class="btn btn-primary btn-sm">Agregar comentario</button>
+                    </div>
+                </form>
+                <ul id="lista-comentarios" class="comments-list"></ul>
+                <p id="comentarios-vacio" class="comments-empty">Aún no hay comentarios para este curso.</p>
+            </section>
         </main>
 
         <!-- Reporte personal de simulación para impresión / PDF -->

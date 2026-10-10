@@ -102,9 +102,9 @@ function cargarDatosCursoEnFormulario(curso) {
     // Encabezados
     if (tituloCursoActual) tituloCursoActual.textContent = curso.nombre;
     if (subtituloCursoActual) {
-        const calificacion = normalizarCalificacion(curso.calificacionProfesor);
-        const textoDocente = curso.profesor
-            ? ` • Docente: ${curso.profesor}${calificacion > 0 ? ' ' + textoEstrellas(calificacion) : ''}`
+        const docente = obtenerDocenteDeCurso(curso);
+        const textoDocente = docente
+            ? ` • Docente: ${docente.nombre}${docente.calificacion > 0 ? ' ' + textoEstrellas(docente.calificacion) : ''}`
             : '';
         subtituloCursoActual.textContent = `Código: ${curso.codigo || 'S/C'} • Créditos: ${curso.creditos || 3}${textoDocente} • Simula las notas requeridas para aprobar.`;
     }
@@ -135,6 +135,70 @@ function cargarDatosCursoEnFormulario(curso) {
 
     actualizarContadores();
     calcularOSimular(false);
+    renderizarComentarios();
+}
+
+// =========================================================================
+// COMENTARIOS DEL CURSO
+// =========================================================================
+const formComentario = document.getElementById('form-comentario');
+const textoComentario = document.getElementById('comentario-texto');
+const contadorComentario = document.getElementById('comentario-contador');
+const listaComentarios = document.getElementById('lista-comentarios');
+const comentariosVacio = document.getElementById('comentarios-vacio');
+
+function actualizarContadorComentario() {
+    if (contadorComentario) contadorComentario.textContent = `${textoComentario.value.length} / ${MAX_COMENTARIO}`;
+}
+
+// Lista los comentarios del más reciente al más antiguo (texto siempre con textContent)
+function renderizarComentarios() {
+    if (!listaComentarios || !cursoActual) return;
+    const comentarios = Array.isArray(cursoActual.comentarios) ? [...cursoActual.comentarios].reverse() : [];
+    listaComentarios.innerHTML = '';
+    comentariosVacio.hidden = comentarios.length > 0;
+
+    comentarios.forEach(comentario => {
+        const item = document.createElement('li');
+        item.className = 'comment-item';
+
+        const texto = document.createElement('p');
+        texto.className = 'comment-text';
+        texto.textContent = comentario.texto;
+
+        const pie = document.createElement('div');
+        pie.className = 'comment-foot';
+        const fecha = document.createElement('time');
+        fecha.dateTime = comentario.fecha;
+        fecha.textContent = formatearFechaReporte(new Date(comentario.fecha));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.type = 'button';
+        btnEliminar.className = 'comment-delete';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.setAttribute('aria-label', 'Eliminar comentario');
+        btnEliminar.addEventListener('click', () => {
+            if (!confirm('¿Eliminar este comentario?')) return;
+            eliminarComentario(cursoActual, comentario.id);
+            guardarCurso(cursoActual);
+            renderizarComentarios();
+        });
+
+        pie.append(fecha, btnEliminar);
+        item.append(texto, pie);
+        listaComentarios.appendChild(item);
+    });
+}
+
+if (formComentario && textoComentario) {
+    textoComentario.addEventListener('input', actualizarContadorComentario);
+    formComentario.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!cursoActual || !agregarComentario(cursoActual, textoComentario.value)) return;
+        guardarCurso(cursoActual);
+        textoComentario.value = '';
+        actualizarContadorComentario();
+        renderizarComentarios();
+    });
 }
 
 // Lee notas, pesos y meta del formulario con la misma forma que un curso guardado
@@ -536,8 +600,9 @@ function generarReportePDF() {
     document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'S/C';
     document.getElementById('rep-curso-creditos').textContent = cursoActual.creditos || 3;
     document.getElementById('rep-curso-meta').textContent = Math.max(parsearNotaMeta(notaMetaInput.value), univ.notaAprobatoria).toFixed(2);
-    const calificacionDocente = normalizarCalificacion(cursoActual.calificacionProfesor);
-    document.getElementById('rep-curso-profesor').textContent = cursoActual.profesor || (calificacionDocente > 0 ? 'Sin nombre' : 'No registrado');
+    const docenteCurso = obtenerDocenteDeCurso(cursoActual);
+    const calificacionDocente = docenteCurso ? docenteCurso.calificacion : 0;
+    document.getElementById('rep-curso-profesor').textContent = docenteCurso ? docenteCurso.nombre : 'No registrado';
     document.getElementById('rep-curso-profesor-estrellas').innerHTML = calificacionDocente > 0
         ? `${htmlEstrellas(calificacionDocente)} <span class="rep-muted">(${calificacionDocente}/${MAX_ESTRELLAS})</span>`
         : '';

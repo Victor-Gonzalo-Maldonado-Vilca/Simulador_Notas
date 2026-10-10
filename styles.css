@@ -309,6 +309,41 @@ input[type="number"],
   border-color: var(--border-focus);
 }
 
+/* Botón de cuenta (inicio de sesión) */
+.btn-session {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-session:hover {
+  color: var(--text-title);
+  border-color: var(--border-focus);
+}
+
+.btn-session.activa {
+  color: var(--status-approved-text);
+  background: var(--status-approved-bg);
+  border-color: var(--status-approved-border);
+}
+
+.btn-session span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .autosave-tag {
   display: inline-flex;
   align-items: center;
@@ -923,6 +958,11 @@ input[type="number"],
 .btn-sm {
   padding: 0.45rem 0.85rem;
   font-size: 0.8rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ==========================================================================
@@ -1668,6 +1708,76 @@ input[type="number"],
 
 .course-comments-count {
   white-space: nowrap;
+}
+
+/* Modal de cuenta */
+.modal-intro {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.modal-intro strong {
+  color: var(--text-title);
+}
+
+.form-group input[type="email"] {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-title);
+  background: var(--surface-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  outline: none;
+  font-family: inherit;
+}
+
+.form-group input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sesion-mensaje {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+}
+
+.sesion-mensaje.exito {
+  color: var(--status-approved-text);
+  background: var(--status-approved-bg);
+  border-color: var(--status-approved-border);
+}
+
+.sesion-mensaje.error {
+  color: var(--status-danger-text);
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+}
+
+.sesion-cuenta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.75rem;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xs);
+  overflow-wrap: anywhere;
+}
+
+.sesion-cuenta strong {
+  color: var(--text-title);
+}
+
+a.form-alert-action {
+  text-decoration: none;
 }
 
 /* Aviso de asignatura duplicada */

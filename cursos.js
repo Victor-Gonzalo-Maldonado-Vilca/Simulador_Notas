@@ -819,9 +819,126 @@ document.addEventListener('DOMContentLoaded', () => {
             renderizarPerfil();
             // La nota aprobatoria cambia el estado de todos los cursos
             actualizarDashboard();
+            // Con sesión iniciada, el perfil también se actualiza en la cuenta
+            if (usuarioNube) sincronizarPerfilNube();
         });
 
         renderizarPerfil();
+    }
+
+    // =========================================================================
+    // CUENTA: INICIO DE SESIÓN CON ENLACE AL CORREO (nube.js)
+    // =========================================================================
+    const modalSesion = document.getElementById('modal-sesion');
+    const btnSesion = document.getElementById('btn-sesion');
+    const textoBtnSesion = document.getElementById('btn-sesion-texto');
+    const vistaAcceso = document.getElementById('sesion-vista-acceso');
+    const vistaCuenta = document.getElementById('sesion-vista-cuenta');
+    const formSesion = document.getElementById('form-sesion');
+    const inputCorreo = document.getElementById('sesion-correo');
+    const mensajeSesion = document.getElementById('sesion-mensaje');
+    const btnEnviarEnlace = document.getElementById('btn-enviar-enlace');
+    let usuarioNube = null;
+    let escuchandoSesion = false;
+
+    function asegurarEscuchaSesion() {
+        if (escuchandoSesion) return;
+        escuchandoSesion = true;
+        escucharSesionNube(alCambiarSesion);
+    }
+
+    function mostrarMensajeSesion(texto, tipo) {
+        mensajeSesion.textContent = texto;
+        mensajeSesion.className = `sesion-mensaje ${tipo}`;
+        mensajeSesion.hidden = !texto;
+    }
+
+    // Botón de la barra: "Iniciar sesión" o el correo de la cuenta
+    function actualizarVistaSesion(usuario) {
+        usuarioNube = usuario;
+        if (usuario) {
+            const correo = usuario.email || 'Mi cuenta';
+            textoBtnSesion.textContent = correo.length > 22 ? `${correo.slice(0, 20)}…` : correo;
+            btnSesion.title = `Sesión iniciada como ${correo}`;
+            btnSesion.classList.add('activa');
+            document.getElementById('sesion-correo-activo').textContent = correo;
+        } else {
+            textoBtnSesion.textContent = 'Iniciar sesión';
+            btnSesion.title = 'Iniciar sesión para participar en lo compartido';
+            btnSesion.classList.remove('activa');
+        }
+        vistaAcceso.hidden = !!usuario;
+        vistaCuenta.hidden = !usuario;
+    }
+
+    function abrirModalSesion() {
+        actualizarVistaSesion(usuarioNube);
+        mostrarMensajeSesion('', '');
+        const local = !puedeIniciarSesion();
+        document.getElementById('sesion-aviso-local').hidden = !local;
+        document.getElementById('sesion-enlace-publicado').href = SITIO_PUBLICADO;
+        inputCorreo.disabled = local;
+        btnEnviarEnlace.disabled = local;
+        modalSesion.style.display = 'flex';
+        if (!usuarioNube && !local) inputCorreo.focus();
+    }
+
+    function cerrarModalSesion() {
+        modalSesion.style.display = 'none';
+    }
+
+    if (modalSesion && btnSesion) {
+        btnSesion.addEventListener('click', abrirModalSesion);
+        document.getElementById('btn-cerrar-sesion-modal').addEventListener('click', cerrarModalSesion);
+        document.getElementById('btn-cancelar-sesion').addEventListener('click', cerrarModalSesion);
+        document.getElementById('btn-listo-sesion').addEventListener('click', cerrarModalSesion);
+        modalSesion.addEventListener('click', (e) => {
+            if (e.target === modalSesion) cerrarModalSesion();
+        });
+
+        formSesion.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const correo = inputCorreo.value.trim();
+            if (!inputCorreo.checkValidity() || !correo) {
+                mostrarMensajeSesion('Escribe un correo válido.', 'error');
+                inputCorreo.focus();
+                return;
+            }
+            btnEnviarEnlace.disabled = true;
+            btnEnviarEnlace.textContent = 'Enviando…';
+            mostrarMensajeSesion('', '');
+            try {
+                await enviarEnlaceAcceso(correo);
+                mostrarMensajeSesion(`Listo. Te enviamos un enlace a ${correo}. Ábrelo en el dispositivo donde quieras usar tu cuenta (revisa también la carpeta de spam).`, 'exito');
+                // La sesión se activará al volver desde el enlace: preparar la escucha
+                asegurarEscuchaSesion();
+            } catch (error) {
+                mostrarMensajeSesion(error.message, 'error');
+            } finally {
+                btnEnviarEnlace.disabled = false;
+                btnEnviarEnlace.textContent = 'Enviar enlace';
+            }
+        });
+
+        document.getElementById('btn-cerrar-sesion').addEventListener('click', async () => {
+            await cerrarSesionNube();
+            actualizarVistaSesion(null);
+            cerrarModalSesion();
+        });
+
+        actualizarVistaSesion(null);
+    }
+
+    function alCambiarSesion(usuario, evento) {
+        actualizarVistaSesion(usuario);
+        // Al iniciar sesión se guardan en la cuenta el nombre y la universidad del perfil
+        if (usuario && evento === 'SIGNED_IN') sincronizarPerfilNube();
+    }
+
+    // Solo se descarga la librería si ya hay sesión o si se vuelve desde el enlace del correo
+    if (haySesionPendiente()) {
+        asegurarEscuchaSesion();
+        obtenerUsuarioNube().then(usuario => actualizarVistaSesion(usuario));
     }
 
     // Alternar tema oscuro/claro

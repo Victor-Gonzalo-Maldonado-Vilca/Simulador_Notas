@@ -30,6 +30,13 @@
             </div>
 
             <div class="nav-right-tools">
+                <button type="button" id="btn-sesion" class="btn-session" aria-haspopup="dialog">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span id="btn-sesion-texto">Iniciar sesión</span>
+                </button>
                 <button type="button" id="btn-theme-toggle" class="btn-theme-toggle" title="Alternar modo oscuro / claro" aria-label="Cambiar tema">
                     <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -313,6 +320,55 @@
                         <button type="submit" class="btn btn-primary" id="btn-guardar-curso">Guardar Asignatura</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Modal de Cuenta (inicio de sesión con enlace al correo) -->
+        <div id="modal-sesion" class="modal-backdrop" style="display: none;">
+            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-sesion-titulo">
+                <div class="modal-header">
+                    <h2 id="modal-sesion-titulo">Cuenta</h2>
+                    <button type="button" class="modal-close" id="btn-cerrar-sesion-modal" aria-label="Cerrar">&times;</button>
+                </div>
+
+                <!-- Sin sesión: pedir correo -->
+                <div id="sesion-vista-acceso">
+                    <p class="modal-intro">
+                        Inicia sesión para participar en lo compartido: calificar docentes, comentar cursos y ver las opiniones de otros estudiantes.
+                        <strong>Tus notas siguen guardadas solo en este dispositivo.</strong>
+                    </p>
+
+                    <div class="form-alert" id="sesion-aviso-local" hidden>
+                        <span>El inicio de sesión funciona en la versión publicada de la app.</span>
+                        <a class="form-alert-action" id="sesion-enlace-publicado" href="#" target="_blank" rel="noopener">Abrir versión publicada</a>
+                    </div>
+
+                    <form id="form-sesion" novalidate>
+                        <div class="form-group">
+                            <label for="sesion-correo">Correo electrónico</label>
+                            <input type="email" id="sesion-correo" required autocomplete="email" inputmode="email" placeholder="tu.correo@ejemplo.com">
+                            <small class="form-hint">Te enviaremos un enlace para entrar, sin contraseña. Si es tu primera vez, se crea tu cuenta.</small>
+                        </div>
+                        <div class="sesion-mensaje" id="sesion-mensaje" role="status" aria-live="polite" hidden></div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary" id="btn-cancelar-sesion">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="btn-enviar-enlace">Enviar enlace</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Con sesión: datos de la cuenta -->
+                <div id="sesion-vista-cuenta" hidden>
+                    <div class="sesion-cuenta">
+                        <span class="profile-label">Sesión iniciada como</span>
+                        <strong id="sesion-correo-activo">--</strong>
+                    </div>
+                    <p class="form-hint">Tu nombre y universidad del perfil se guardan en tu cuenta. Tus notas no se suben: siguen solo en este dispositivo.</p>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-cerrar-sesion">Cerrar sesión</button>
+                        <button type="button" class="btn btn-primary" id="btn-listo-sesion">Listo</button>
+                    </div>
+                </div>
             </div>
         </div>
 

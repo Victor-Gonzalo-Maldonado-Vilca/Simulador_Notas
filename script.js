@@ -314,6 +314,7 @@ function calcularOSimular(mostrarAlertas = true) {
         }
 
         mostrarMetricas(r, "100% evaluado");
+        ocultarGrafico();
         avisarSiPesosNoSuman100(r.sumaPesos, mostrarAlertas, `Nota: La suma total de los pesos es ${r.sumaPesos.toFixed(1)}%, no 100%. El cálculo se normalizó proporcionalmente.`);
         return;
     }
@@ -371,8 +372,31 @@ function calcularOSimular(mostrarAlertas = true) {
     }
 
     mostrarMetricas(r, `${r.pctEvaluado}% evaluado`);
+    mostrarGrafico(r);
     avisarSiPesosNoSuman100(r.sumaPesos, mostrarAlertas, `Los pesos actuales suman ${r.sumaPesos.toFixed(1)}%. El simulador normalizó los porcentajes sobre el total actual.`);
 }
+
+// Gráfico de escenarios (grafico.js): solo tiene sentido mientras quedan evaluaciones pendientes
+const graficoEscenarios = document.getElementById('grafico-escenarios');
+let resumenGrafico = null;
+let redimensionTimeout = null;
+
+function mostrarGrafico(resumen) {
+    resumenGrafico = resumen;
+    if (graficoEscenarios) renderizarGraficoEscenarios(graficoEscenarios, resumen);
+}
+
+function ocultarGrafico() {
+    resumenGrafico = null;
+    if (graficoEscenarios) graficoEscenarios.style.display = 'none';
+}
+
+window.addEventListener('resize', () => {
+    if (redimensionTimeout) clearTimeout(redimensionTimeout);
+    redimensionTimeout = setTimeout(() => {
+        if (resumenGrafico) mostrarGrafico(resumenGrafico);
+    }, 150);
+});
 
 function animarResultado() {
     resultadoElement.style.transform = "scale(1.08)";
@@ -405,6 +429,7 @@ function mostrarResultadoInvalido(estadoTexto, mensaje) {
     estadoElement.textContent = estadoTexto;
     resultadoMensaje.textContent = mensaje;
     metricasSecundarias.style.display = 'none';
+    ocultarGrafico();
 }
 
 function resetearResultado() {
@@ -414,6 +439,7 @@ function resetearResultado() {
     estadoElement.textContent = "Esperando datos";
     resultadoMensaje.textContent = "Ingresa tus notas actuales y porcentajes. Si dejas evaluaciones en blanco, el simulador calculará automáticamente la nota que requieres para aprobar.";
     metricasSecundarias.style.display = 'none';
+    ocultarGrafico();
 }
 
 // =========================================================================

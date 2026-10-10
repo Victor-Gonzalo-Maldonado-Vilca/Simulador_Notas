@@ -363,6 +363,31 @@
                         <span class="metric-sub">Puntaje objetivo</span>
                     </div>
                 </div>
+
+                <!-- Gráfico de escenarios (modo predictivo) -->
+                <div id="grafico-escenarios" class="scenario-chart" style="display: none;">
+                    <div class="scenario-chart-head">
+                        <span class="metric-title">Escenarios de nota final</span>
+                        <span class="scenario-chart-sub">Tu nota final según el promedio que obtengas en las evaluaciones pendientes. Pasa el cursor sobre el gráfico o usa las flechas del teclado.</span>
+                    </div>
+                    <div class="grafico-area">
+                        <div class="grafico-lienzo"></div>
+                        <div class="grafico-tooltip" role="status" aria-live="polite"></div>
+                    </div>
+                    <details class="grafico-tabla-wrap">
+                        <summary>Ver tabla de escenarios</summary>
+                        <table class="grafico-tabla">
+                            <thead>
+                                <tr>
+                                    <th>Promedio en pendientes</th>
+                                    <th>Nota final</th>
+                                    <th>Condición</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </details>
+                </div>
             </section>
         </main>
 
@@ -488,6 +513,7 @@
     </div>
 
     <script src="storage.js"></script>
+    <script src="grafico.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

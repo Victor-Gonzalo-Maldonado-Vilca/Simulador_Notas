@@ -1420,6 +1420,107 @@ input[type="number"],
   font-weight: 500;
 }
 
+/* Gráfico de escenarios (sobre la tarjeta de resultado oscura) */
+.scenario-chart {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xs);
+  padding: 0.9rem 0.85rem 0.75rem;
+}
+
+.scenario-chart-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.scenario-chart-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.grafico-area {
+  position: relative;
+}
+
+.grafico-lienzo {
+  width: 100%;
+}
+
+.grafico-lienzo svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grafico-lienzo svg:focus-visible {
+  outline: 2px solid #3987e5;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.grafico-tooltip {
+  display: none;
+  position: absolute;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 9.5rem;
+  padding: 0.45rem 0.6rem;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  font-size: 0.725rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.grafico-tooltip strong {
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.grafico-tooltip-estado {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.grafico-tabla-wrap {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.grafico-tabla-wrap summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.grafico-tabla {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico-tabla th,
+.grafico-tabla td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.grafico-tabla th {
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.grafico-tabla td {
+  color: #e2e8f0;
+}
+
 /* ==========================================================================
    MODAL DE ASIGNATURAS Y FORMULARIOS
    ========================================================================== */

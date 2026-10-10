@@ -5,6 +5,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulador de Notas | Sistema de Promedio Ponderado</title>
+    <!-- Script preventivo anti-parpadeo de tema -->
+    <script>
+        try {
+            const t = localStorage.getItem('unsa_tema_interfaz') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        } catch (e) {}
+    </script>
     <!-- Hoja de estilos formal -->
     <link rel="stylesheet" href="styles.css">
     <!-- Google Fonts para tipografía refinada opcional si hay internet, fallback en Segoe UI -->
@@ -31,9 +38,29 @@
                 </div>
             </div>
 
-            <div class="autosave-tag" id="autosave-tag" title="Los cambios se guardan automáticamente">
-                <span class="autosave-dot"></span>
-                <span>Auto-guardado</span>
+            <div class="nav-right-tools">
+                <button type="button" id="btn-theme-toggle" class="btn-theme-toggle" title="Alternar modo oscuro / claro" aria-label="Cambiar tema">
+                    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <span class="theme-text">Modo Oscuro</span>
+                </button>
+
+                <div class="autosave-tag" id="autosave-tag" title="Los cambios se guardan automáticamente">
+                    <span class="autosave-dot"></span>
+                    <span>Auto-guardado</span>
+                </div>
             </div>
         </nav>
 
@@ -270,6 +297,16 @@
                             </svg>
                             Limpiar
                         </button>
+                        <button type="button" id="btn-exportar-pdf" class="btn btn-secondary btn-pdf" title="Descargar o imprimir reporte académico en PDF">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            Reporte PDF
+                        </button>
                         <button type="submit" class="btn btn-primary" id="btn-calcular">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -323,6 +360,116 @@
                 </div>
             </section>
         </main>
+
+        <!-- Documento de Reporte Oficial para Impresión / PDF -->
+        <div id="documento-reporte-pdf" class="academic-report-sheet" aria-hidden="true">
+            <header class="rep-header">
+                <div class="rep-crest-block">
+                    <span class="rep-crest-badge">UNSA</span>
+                </div>
+                <div class="rep-header-info">
+                    <h2 class="rep-inst-name">UNIVERSIDAD NACIONAL DE SAN AGUSTÍN DE AREQUIPA</h2>
+                    <h3 class="rep-inst-sub">VICERRECTORADO ACADÉMICO • DIRECCIÓN DE ASUNTOS ACADÉMICOS</h3>
+                    <h4 class="rep-doc-title">FICHA TÉCNICA DE EVALUACIÓN Y PROYECCIÓN PONDERADA</h4>
+                </div>
+                <div class="rep-header-meta">
+                    <div><strong>Fecha:</strong> <span id="rep-fecha-emision">--</span></div>
+                    <div><strong>Documento:</strong> <span id="rep-codigo-doc">REG-SIM-UNSA</span></div>
+                </div>
+            </header>
+
+            <div class="rep-rule"></div>
+
+            <section class="rep-course-details">
+                <table class="rep-meta-table">
+                    <tr>
+                        <th style="width: 18%;">Asignatura:</th>
+                        <td style="width: 42%;"><strong id="rep-curso-nombre">--</strong></td>
+                        <th style="width: 20%;">Código Curricular:</th>
+                        <td style="width: 20%;"><span id="rep-curso-codigo">--</span></td>
+                    </tr>
+                    <tr>
+                        <th>Créditos:</th>
+                        <td><span id="rep-curso-creditos">--</span> créditos académicos</td>
+                        <th>Calificación Meta:</th>
+                        <td><strong id="rep-curso-meta">10.50</strong> (Escala 0 a 20)</td>
+                    </tr>
+                </table>
+            </section>
+
+            <section class="rep-table-section">
+                <div class="rep-section-tag">REGISTRO DE EVALUACIONES CONTINUAS Y PARCIALES</div>
+                <table class="rep-grades-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 14%;">Fase / Unidad</th>
+                            <th style="width: 36%;">Evaluación Académica</th>
+                            <th style="width: 16%; text-align: center;">Ponderación (%)</th>
+                            <th style="width: 16%; text-align: center;">Calificación (0-20)</th>
+                            <th style="width: 18%; text-align: right;">Aporte Ponderado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rep-tabla-cuerpo">
+                        <!-- Generado dinámicamente -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="rep-total-row">
+                            <td colspan="2"><strong>COBERTURA EVALUATIVA TOTAL</strong></td>
+                            <td id="rep-total-pesos-td" style="text-align: center;"><strong>100%</strong></td>
+                            <td colspan="2" id="rep-total-aporte-td" style="text-align: right;"><strong>0.00 / 20.00</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </section>
+
+            <section class="rep-diagnosis-section">
+                <div class="rep-section-tag">DICTAMEN ACADÉMICO Y DIAGNÓSTICO PROYECTADO</div>
+                <div class="rep-diagnosis-card">
+                    <div class="rep-diag-header">
+                        <div>
+                            <span class="rep-diag-lbl">Condición Proyectada:</span>
+                            <span class="rep-diag-badge" id="rep-diag-condicion">--</span>
+                        </div>
+                        <div>
+                            <span class="rep-diag-lbl">Calificación requerida en evaluaciones pendientes:</span>
+                            <span class="rep-diag-score" id="rep-diag-nota-req">--</span>
+                        </div>
+                    </div>
+                    <p class="rep-diag-text" id="rep-diag-mensaje">--</p>
+
+                    <div class="rep-scenarios-row">
+                        <div class="rep-scenario-cell">
+                            <span>Puntaje Acumulado Actual:</span>
+                            <strong id="rep-scen-acumulado">--</strong>
+                        </div>
+                        <div class="rep-scenario-cell">
+                            <span>Piso Mínimo Garantizado (Nota 00):</span>
+                            <strong id="rep-scen-minimo">--</strong>
+                        </div>
+                        <div class="rep-scenario-cell">
+                            <span>Techo Máximo Alcanzable (Nota 20):</span>
+                            <strong id="rep-scen-maximo">--</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="rep-footer-block">
+                <p class="rep-disclaimer">
+                    <strong>AVISO NORMATIVO:</strong> Documento emitido con fines exclusivos de proyección y planificación curricular del estudiante. No sustituye las actas oficiales de evaluación emitidas por el sistema DUTIC y la Oficina General de Registros Académicos de la UNSA.
+                </p>
+                <div class="rep-signatures">
+                    <div class="rep-sig-item">
+                        <div class="rep-sig-line"></div>
+                        <span>Firma del Estudiante</span>
+                    </div>
+                    <div class="rep-stamp-box">
+                        <span>SISTEMA DE GESTIÓN ACADÉMICA</span>
+                        <span>REGISTRO INFORMATIVO VÁLIDO</span>
+                    </div>
+                </div>
+            </footer>
+        </div>
 
         <footer class="footer-text">
             Simulador de Calificaciones Ponderadas • Diseño formal y profesional

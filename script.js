@@ -493,5 +493,126 @@ if (btnLimpiar) {
     });
 }
 
+// =========================================================================
+// REPORTE ACADÉMICO OFICIAL EN PDF / IMPRESIÓN
+// =========================================================================
+
+const btnExportarPdf = document.getElementById('btn-exportar-pdf');
+
+function generarReportePDF() {
+    if (!cursoActual) return;
+
+    // Asegurar que los datos más recientes estén calculados y guardados
+    autoGuardarCurso();
+    calcularOSimular(false);
+
+    const docSheet = document.getElementById('documento-reporte-pdf');
+    if (!docSheet) return;
+
+    // Metadatos
+    const ahora = new Date();
+    const formatoFecha = ahora.toLocaleDateString('es-PE', {
+        year: 'numeric',
+        month: 'long',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    document.getElementById('rep-fecha-emision').textContent = formatoFecha;
+    document.getElementById('rep-codigo-doc').textContent = `ACTA-SIM-${cursoActual.codigo || 'UNSA'}-${Date.now().toString().slice(-6)}`;
+    document.getElementById('rep-curso-nombre').textContent = cursoActual.nombre;
+    document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'UNSA';
+    document.getElementById('rep-curso-creditos').textContent = cursoActual.creditos || 3;
+    document.getElementById('rep-curso-meta').textContent = (parseFloat(notaMetaInput.value) || 10.5).toFixed(2);
+
+    // Llenar tabla de evaluaciones
+    const tablaCuerpo = document.getElementById('rep-tabla-cuerpo');
+    tablaCuerpo.innerHTML = '';
+
+    let totalPesos = 0;
+    let totalPuntos = 0;
+
+    const fases = [
+        { nombre: 'Fase I • Unidad 01', evals: [EVALUACIONES[0], EVALUACIONES[1]] },
+        { nombre: 'Fase II • Unidad 02', evals: [EVALUACIONES[2], EVALUACIONES[3]] },
+        { nombre: 'Fase III • Unidad 03', evals: [EVALUACIONES[4], EVALUACIONES[5]] }
+    ];
+
+    fases.forEach((fase) => {
+        let subtotalPuntosFase = 0;
+        let subtotalPesosFase = 0;
+
+        fase.evals.forEach((ev, idx) => {
+            const notaVal = document.getElementById(ev.notaId).value.trim();
+            const pesoVal = parseFloat(document.getElementById(ev.pesoId).value) || 0;
+
+            totalPesos += pesoVal;
+            subtotalPesosFase += pesoVal;
+
+            const tr = document.createElement('tr');
+
+            let tdFase = '';
+            if (idx === 0) {
+                tdFase = `<td rowspan="2" class="rep-td-fase"><strong>${fase.nombre}</strong></td>`;
+            }
+
+            let califTexto = '--';
+            let aporteTexto = '--';
+
+            if (notaVal !== '') {
+                const n = parseFloat(notaVal);
+                const aporte = (n * pesoVal) / 100;
+                califTexto = n.toFixed(2);
+                aporteTexto = `+${aporte.toFixed(2)} pts`;
+                subtotalPuntosFase += aporte;
+                totalPuntos += aporte;
+            } else {
+                califTexto = '<span class="rep-tag-pendiente">[ Pendiente ]</span>';
+                aporteTexto = '<span class="rep-tag-pendiente">Por evaluar</span>';
+            }
+
+            tr.innerHTML = `
+                ${tdFase}
+                <td>${ev.nombre}</td>
+                <td style="text-align: center;">${pesoVal.toFixed(1)}%</td>
+                <td style="text-align: center; font-weight: 700;">${califTexto}</td>
+                <td style="text-align: right; font-weight: 700;">${aporteTexto}</td>
+            `;
+
+            tablaCuerpo.appendChild(tr);
+        });
+    });
+
+    document.getElementById('rep-total-pesos-td').innerHTML = `<strong>${totalPesos.toFixed(1)}%</strong>`;
+    document.getElementById('rep-total-aporte-td').innerHTML = `<strong>${totalPuntos.toFixed(2)} / 20.00 pts</strong>`;
+
+    // Diagnóstico
+    document.getElementById('rep-diag-condicion').textContent = estadoElement.textContent || 'En proceso';
+    document.getElementById('rep-diag-condicion').className = `rep-diag-badge ${estadoElement.className.replace('result-status-pill', '')}`;
+    document.getElementById('rep-diag-nota-req').textContent = `${resultadoElement.textContent} / 20`;
+    document.getElementById('rep-diag-mensaje').innerHTML = resultadoMensaje.innerHTML;
+
+    document.getElementById('rep-scen-acumulado').textContent = metricAcumulado.textContent || totalPuntos.toFixed(2);
+    document.getElementById('rep-scen-minimo').textContent = metricMinimo.textContent || '--';
+    document.getElementById('rep-scen-maximo').textContent = metricMaximo.textContent || '--';
+
+    // Lanzar diálogo nativo de impresión / Guardar como PDF
+    window.print();
+}
+
+if (btnExportarPdf) {
+    btnExportarPdf.addEventListener('click', generarReportePDF);
+}
+
+// Botón de alternancia de tema
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', alternarTema);
+}
+
 // Inicializar al cargar el documento
-document.addEventListener('DOMContentLoaded', inicializarCurso);
+document.addEventListener('DOMContentLoaded', () => {
+    inicializarCurso();
+    actualizarBotonesTema(obtenerTemaActual());
+});

@@ -367,3 +367,85 @@ function calcularMetricasGlobales(cursos) {
         cursosEnRiesgo
     };
 }
+
+// ==========================================================================
+// GESTIÓN DE TEMA (MODO OSCURO / MODO CLARO)
+// ==========================================================================
+const THEME_KEY = 'unsa_tema_interfaz';
+
+/**
+ * Obtiene el tema actual configurado o respeta la preferencia del sistema.
+ */
+function obtenerTemaActual() {
+    try {
+        const guardado = localStorage.getItem(THEME_KEY);
+        if (guardado === 'dark' || guardado === 'light') {
+            return guardado;
+        }
+    } catch (e) {
+        console.error("Error al leer tema de localStorage:", e);
+    }
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+    }
+    return 'light';
+}
+
+/**
+ * Aplica el tema seleccionado en el DOM y lo almacena.
+ */
+function aplicarTema(tema) {
+    if (tema === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+    try {
+        localStorage.setItem(THEME_KEY, tema);
+    } catch (e) {}
+    actualizarBotonesTema(tema);
+}
+
+/**
+ * Alterna entre modo oscuro y claro.
+ */
+function alternarTema() {
+    const temaActual = obtenerTemaActual();
+    const nuevoTema = temaActual === 'dark' ? 'light' : 'dark';
+    aplicarTema(nuevoTema);
+    return nuevoTema;
+}
+
+/**
+ * Actualiza los iconos y textos de los botones de alternancia de tema.
+ */
+function actualizarBotonesTema(tema) {
+    const botones = document.querySelectorAll('.btn-theme-toggle');
+    botones.forEach(btn => {
+        const iconMoon = btn.querySelector('.icon-moon');
+        const iconSun = btn.querySelector('.icon-sun');
+        const textSpan = btn.querySelector('.theme-text');
+
+        if (tema === 'dark') {
+            if (iconMoon) iconMoon.style.display = 'none';
+            if (iconSun) iconSun.style.display = 'inline-block';
+            if (textSpan) textSpan.textContent = 'Modo Claro';
+            btn.setAttribute('title', 'Cambiar a modo claro');
+        } else {
+            if (iconMoon) iconMoon.style.display = 'inline-block';
+            if (iconSun) iconSun.style.display = 'none';
+            if (textSpan) textSpan.textContent = 'Modo Oscuro';
+            btn.setAttribute('title', 'Cambiar a modo oscuro');
+        }
+    });
+}
+
+// Inicialización inmediata del tema en carga
+(function inicializarTemaInmediato() {
+    const tema = obtenerTemaActual();
+    if (tema === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }
+})();
+

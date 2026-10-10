@@ -5,7 +5,7 @@
    ========================================================================== */
 
 :root {
-  /* Identidad Cromática Institucional */
+  /* Identidad Cromática Institucional (Modo Claro) */
   --inst-navy: #0f2742;            /* Azul institucional primario */
   --inst-navy-hover: #173b64;
   --inst-navy-subtle: #f0f4f9;
@@ -61,6 +61,54 @@
   --radius-lg: 10px;
 }
 
+/* ==========================================================================
+   MODO OSCURO INSTITUCIONAL (HIGH-COMFORT NIGHT STUDY THEME)
+   ========================================================================== */
+
+[data-theme="dark"] {
+  --bg-workspace: #0a131e;         /* Azul noche sobrio, reduce fatiga visual */
+  --surface-card: #101c2b;         /* Superficie de tarjeta contrastada */
+  --surface-subtle: #142337;       /* Superficie secundaria */
+
+  --text-title: #f8fafc;
+  --text-body: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+
+  --border-light: #1b2f48;
+  --border-medium: #254165;
+  --border-dark: #375988;
+  --border-focus: #3b82f6;
+
+  --inst-navy: #2563eb;
+  --inst-navy-hover: #3b82f6;
+  --inst-navy-subtle: #142b47;
+
+  --inst-granate: #a82436;
+  --inst-granate-hover: #c53045;
+  --inst-granate-subtle: #2d1217;
+
+  --status-approved-text: #4ade80;
+  --status-approved-bg: #062b1a;
+  --status-approved-border: #14532d;
+
+  --status-regular-text: #60a5fa;
+  --status-regular-bg: #0f2747;
+  --status-regular-border: #1d4ed8;
+
+  --status-warning-text: #fde047;
+  --status-warning-bg: #2e2005;
+  --status-warning-border: #713f12;
+
+  --status-danger-text: #f87171;
+  --status-danger-bg: #2d1013;
+  --status-danger-border: #7f1d1d;
+
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -79,9 +127,10 @@ body {
   align-items: center;
   justify-content: flex-start;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Tabular figures para que todos los números académicos se alineen con rigor */
+/* Tabular figures para que los números académicos se alineen con rigor */
 .score-value,
 .metric-val,
 .global-metric-val,
@@ -119,7 +168,7 @@ input[type="number"],
   text-transform: uppercase;
   padding: 0.35rem 0.85rem;
   border-radius: var(--radius-xs);
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--border-medium);
   border-left: 3px solid var(--inst-granate);
   box-shadow: var(--shadow-subtle);
   margin-bottom: 0.85rem;
@@ -129,6 +178,17 @@ input[type="number"],
   width: 15px;
   height: 15px;
   color: var(--inst-granate);
+}
+
+.brand-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--inst-granate);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .header-section h1 {
@@ -148,7 +208,7 @@ input[type="number"],
 }
 
 /* ==========================================================================
-   BARRA DE NAVEGACIÓN SUPERIOR (SIMULADOR.HTML)
+   BARRA DE NAVEGACIÓN SUPERIOR
    ========================================================================== */
 
 .top-nav-bar {
@@ -171,17 +231,17 @@ input[type="number"],
   gap: 0.45rem;
   font-size: 0.825rem;
   font-weight: 700;
-  color: var(--inst-navy);
+  color: var(--text-title);
   text-decoration: none;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-xs);
-  background: var(--inst-navy-subtle);
+  background: var(--surface-subtle);
   border: 1px solid var(--border-medium);
   transition: all 0.15s ease;
 }
 
 .btn-back:hover {
-  background: #e2e8f0;
+  background: var(--border-light);
   color: var(--text-title);
 }
 
@@ -214,6 +274,34 @@ input[type="number"],
 }
 
 .select-wrapper select:focus {
+  border-color: var(--border-focus);
+}
+
+.nav-right-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+/* Botón de Modo Oscuro */
+.btn-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-theme-toggle:hover {
+  color: var(--text-title);
   border-color: var(--border-focus);
 }
 
@@ -251,7 +339,6 @@ input[type="number"],
    DASHBOARD DE ASIGNATURAS (INDEX.HTML)
    ========================================================================== */
 
-/* Métricas Globales del Semestre */
 .global-summary-card {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -275,7 +362,6 @@ input[type="number"],
   align-items: center;
   gap: 0.85rem;
   box-shadow: var(--shadow-subtle);
-  transition: border-color 0.15s ease;
 }
 
 .global-metric:nth-child(1) { border-top-color: var(--inst-navy); }
@@ -295,15 +381,15 @@ input[type="number"],
 }
 
 .metric-icon.blue {
-  background: #f1f5f9;
+  background: var(--surface-subtle);
   color: var(--inst-navy);
-  border-color: #e2e8f0;
+  border-color: var(--border-light);
 }
 
 .metric-icon.purple {
-  background: #f8fafc;
-  color: #334155;
-  border-color: #e2e8f0;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  border-color: var(--border-light);
 }
 
 .metric-icon.green {
@@ -330,13 +416,8 @@ input[type="number"],
   line-height: 1.1;
 }
 
-.global-metric-val.highlight-green {
-  color: var(--status-approved-text);
-}
-
-.global-metric-val.highlight-amber {
-  color: var(--status-warning-text);
-}
+.global-metric-val.highlight-green { color: var(--status-approved-text); }
+.global-metric-val.highlight-amber { color: var(--status-warning-text); }
 
 .global-metric-label {
   font-size: 0.75rem;
@@ -387,6 +468,13 @@ input[type="number"],
 
 .search-box input::placeholder {
   color: var(--text-light);
+}
+
+.dashboard-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 /* Grid de Cursos */
@@ -441,8 +529,8 @@ input[type="number"],
 }
 
 .course-code-badge {
-  background: var(--inst-navy-subtle);
-  color: var(--inst-navy);
+  background: var(--surface-subtle);
+  color: var(--text-title);
   font-size: 0.725rem;
   font-weight: 700;
   padding: 0.2rem 0.45rem;
@@ -519,7 +607,7 @@ input[type="number"],
 .progress-bar-container {
   width: 100%;
   height: 5px;
-  background: #e2e8f0;
+  background: var(--border-light);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -566,8 +654,8 @@ input[type="number"],
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0.65rem 1.25rem;
-  font-size: 0.875rem;
+  padding: 0.6rem 1.15rem;
+  font-size: 0.85rem;
   font-weight: 700;
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -597,6 +685,17 @@ input[type="number"],
 .btn-secondary:hover {
   background: var(--surface-subtle);
   border-color: var(--border-dark);
+}
+
+.btn-pdf {
+  border-color: var(--border-medium);
+  color: var(--text-title);
+}
+
+.btn-pdf:hover {
+  border-color: var(--inst-granate);
+  color: var(--inst-granate);
+  background: var(--inst-granate-subtle);
 }
 
 .btn-sm {
@@ -647,7 +746,7 @@ input[type="number"],
 .config-label {
   font-size: 0.825rem;
   font-weight: 700;
-  color: var(--inst-navy);
+  color: var(--text-title);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -688,8 +787,8 @@ input[type="number"],
 }
 
 .target-tag {
-  background: var(--inst-navy-subtle);
-  color: var(--inst-navy);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
   font-size: 0.725rem;
   font-weight: 700;
   padding: 0.2rem 0.5rem;
@@ -724,9 +823,9 @@ input[type="number"],
 }
 
 .btn-preset:hover {
-  background: var(--inst-navy-subtle);
-  border-color: var(--inst-navy);
-  color: var(--inst-navy);
+  background: var(--surface-subtle);
+  border-color: var(--border-focus);
+  color: var(--text-title);
 }
 
 /* Grid de Unidades Académicas */
@@ -754,13 +853,8 @@ input[type="number"],
   box-shadow: var(--shadow-subtle);
 }
 
-.unit-card:nth-child(2) {
-  border-top-color: #334155;
-}
-
-.unit-card:nth-child(3) {
-  border-top-color: var(--inst-granate);
-}
+.unit-card:nth-child(2) { border-top-color: #334155; }
+.unit-card:nth-child(3) { border-top-color: var(--inst-granate); }
 
 .unit-header {
   display: flex;
@@ -791,7 +885,7 @@ input[type="number"],
   border: 1px solid var(--border-light);
 }
 
-/* Bloques de Evaluación (Parciales y Continuas) */
+/* Bloques de Evaluación */
 .evaluation-block {
   margin-bottom: 0.85rem;
   background: var(--surface-subtle);
@@ -900,7 +994,7 @@ input[type="number"],
   font-weight: 700;
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-xs);
-  background: #e2e8f0;
+  background: var(--surface-subtle);
   color: var(--text-title);
   font-size: 0.775rem;
   border: 1px solid var(--border-medium);
@@ -921,6 +1015,7 @@ input[type="number"],
 .button-group {
   display: flex;
   gap: 0.65rem;
+  flex-wrap: wrap;
   width: 100%;
 }
 
@@ -932,7 +1027,6 @@ input[type="number"],
 
 /* ==========================================================================
    PANEL DE RESULTADO Y DICTAMEN ACADÉMICO (RESULT-CARD)
-   Diseñado como una Ficha de Auditoría y Diagnóstico Académico Institucional
    ========================================================================== */
 
 .result-card {
@@ -947,6 +1041,11 @@ input[type="number"],
   border: 1px solid #1e3a5f;
   border-top: 4px solid var(--inst-granate);
   position: relative;
+}
+
+[data-theme="dark"] .result-card {
+  background: #07131e;
+  border-color: #1e334d;
 }
 
 .result-main-row {
@@ -978,7 +1077,6 @@ input[type="number"],
   color: #94a3b8;
 }
 
-/* Badges de Estado Académico Formales */
 .result-status-pill {
   display: inline-flex;
   align-items: center;
@@ -1054,7 +1152,6 @@ input[type="number"],
   color: #64748b;
 }
 
-/* Párrafo Explicativo del Dictamen */
 .result-message-box {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1070,7 +1167,6 @@ input[type="number"],
   font-weight: 700;
 }
 
-/* Desglose Métrico de Auditoría */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1125,7 +1221,7 @@ input[type="number"],
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -1193,6 +1289,7 @@ input[type="number"],
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-title);
+  background: var(--surface-card);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-xs);
   outline: none;
@@ -1292,9 +1389,9 @@ input[type="number"],
 }
 
 .alert-info {
-  background: var(--inst-navy-subtle);
+  background: var(--surface-subtle);
   border-color: var(--border-medium);
-  color: var(--inst-navy);
+  color: var(--text-title);
 }
 
 /* Estado Vacío */
@@ -1332,4 +1429,312 @@ input[type="number"],
   font-size: 0.775rem;
   margin-top: 2.25rem;
   letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   ESTILOS DE IMPRESIÓN Y REPORTE PDF OFICIAL (@MEDIA PRINT)
+   ========================================================================== */
+
+.academic-report-sheet {
+  display: none; /* Oculto en pantalla normal */
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm 1.5cm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10.5pt !important;
+    line-height: 1.35 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar elementos de la interfaz interactiva */
+  .app-container > *:not(.academic-report-sheet),
+  .top-nav-bar,
+  .header-section,
+  .global-summary-card,
+  .dashboard-controls-bar,
+  .courses-grid,
+  .empty-state-card,
+  .modal-backdrop,
+  .simulator-card,
+  .footer-text,
+  .alert-box {
+    display: none !important;
+  }
+
+  /* Mostrar exclusivamente la hoja de reporte */
+  .academic-report-sheet {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Membrete Institucional Oficial */
+  .rep-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #0f2742;
+  }
+
+  .rep-crest-block {
+    flex-shrink: 0;
+  }
+
+  .rep-crest-badge {
+    display: inline-block;
+    padding: 0.4rem 0.75rem;
+    background: #7e1927 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+    border-radius: 3px;
+  }
+
+  .rep-header-info {
+    flex: 1;
+    text-align: center;
+  }
+
+  .rep-inst-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f2742 !important;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.15rem;
+  }
+
+  .rep-inst-sub {
+    font-size: 0.725rem;
+    font-weight: 600;
+    color: #475569 !important;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.025em;
+  }
+
+  .rep-doc-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #7e1927 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.035em;
+  }
+
+  .rep-header-meta {
+    font-size: 0.725rem;
+    color: #334155 !important;
+    text-align: right;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+
+  .rep-rule {
+    height: 2px;
+    background: #7e1927;
+    margin-bottom: 0.85rem;
+  }
+
+  /* Tablas de Metadatos y Datos del Curso */
+  .rep-meta-table,
+  .rep-grades-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+  }
+
+  .rep-meta-table th,
+  .rep-meta-table td {
+    padding: 0.35rem 0.55rem;
+    border: 1px solid #cbd5e1;
+    text-align: left;
+  }
+
+  .rep-meta-table th {
+    background: #f1f5f9 !important;
+    color: #0f2742 !important;
+    font-weight: 700;
+  }
+
+  .rep-section-tag {
+    font-size: 0.725rem;
+    font-weight: 800;
+    color: #0f2742 !important;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: #f1f5f9 !important;
+    padding: 0.25rem 0.5rem;
+    border-left: 3px solid #7e1927;
+    margin-bottom: 0.4rem;
+  }
+
+  /* Tabla de Evaluaciones Normativas */
+  .rep-grades-table th {
+    background: #0f2742 !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid #0f2742;
+    font-size: 0.75rem;
+  }
+
+  .rep-grades-table td {
+    padding: 0.4rem 0.55rem;
+    border: 1px solid #cbd5e1;
+  }
+
+  .rep-td-fase {
+    background: #f8fafc !important;
+    color: #0f2742 !important;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+
+  .rep-total-row td {
+    background: #f1f5f9 !important;
+    border-top: 2px solid #0f2742 !important;
+    padding: 0.5rem 0.55rem;
+    font-size: 0.825rem;
+  }
+
+  .rep-tag-pendiente {
+    color: #64748b !important;
+    font-style: italic;
+  }
+
+  /* Tarjeta de Diagnóstico y Dictamen */
+  .rep-diagnosis-card {
+    border: 1px solid #0f2742;
+    border-left: 4px solid #7e1927;
+    border-radius: 2px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 1.15rem;
+    background: #f8fafc !important;
+  }
+
+  .rep-diag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .rep-diag-lbl {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569 !important;
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+
+  .rep-diag-badge {
+    font-weight: 800;
+    font-size: 0.825rem;
+    color: #0f2742 !important;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid #0f2742;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  .rep-diag-score {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #7e1927 !important;
+  }
+
+  .rep-diag-text {
+    font-size: 0.775rem;
+    color: #1e293b !important;
+    line-height: 1.4;
+    margin-bottom: 0.65rem;
+  }
+
+  .rep-scenarios-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 0.5rem;
+  }
+
+  .rep-scenario-cell {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.7rem;
+    color: #475569 !important;
+  }
+
+  .rep-scenario-cell strong {
+    font-size: 0.9rem;
+    color: #0f2742 !important;
+  }
+
+  /* Pie y Firmas */
+  .rep-footer-block {
+    margin-top: 1.25rem;
+  }
+
+  .rep-disclaimer {
+    font-size: 0.65rem;
+    color: #64748b !important;
+    line-height: 1.35;
+    margin-bottom: 1.25rem;
+    text-align: justify;
+  }
+
+  .rep-signatures {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-top: 0.75rem;
+  }
+
+  .rep-sig-item {
+    text-align: center;
+    width: 190px;
+  }
+
+  .rep-sig-line {
+    border-bottom: 1px solid #000000;
+    margin-bottom: 0.35rem;
+    height: 30px;
+  }
+
+  .rep-sig-item span {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #334155 !important;
+  }
+
+  .rep-stamp-box {
+    border: 1.5px dashed #7e1927;
+    padding: 0.35rem 0.75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #7e1927 !important;
+    letter-spacing: 0.05em;
+  }
 }

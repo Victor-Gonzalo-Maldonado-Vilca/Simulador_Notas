@@ -211,5 +211,69 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // =========================================================================
+    // REPORTE CONSOLIDADO SEMESTRAL EN PDF
+    // =========================================================================
+    const btnReporteSemestral = document.getElementById('btn-reporte-semestral');
+
+    function generarReporteSemestralPDF() {
+        const cursos = obtenerCursos();
+        if (!cursos || cursos.length === 0) {
+            alert("No hay asignaturas registradas para generar el consolidado.");
+            return;
+        }
+
+        const ahora = new Date();
+        const formatoFecha = ahora.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: 'long',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const metricas = calcularMetricasGlobales(cursos);
+
+        document.getElementById('rep-sem-fecha').textContent = formatoFecha;
+        document.getElementById('rep-sem-codigo').textContent = `CONSOLIDADO-UNSA-${Date.now().toString().slice(-6)}`;
+        document.getElementById('rep-sem-total-cursos').textContent = metricas.totalCursos;
+        document.getElementById('rep-sem-total-creditos').textContent = metricas.creditosTotales;
+        document.getElementById('rep-sem-promedio-global').textContent = `${metricas.promedioPonderado} / 20.00`;
+        document.getElementById('rep-sem-resumen-estados').textContent = `${metricas.cursosAprobados} aseguradas • ${metricas.cursosEnRiesgo} en seguimiento`;
+
+        const tablaCuerpo = document.getElementById('rep-sem-tabla-cuerpo');
+        tablaCuerpo.innerHTML = '';
+
+        cursos.forEach(c => {
+            const res = calcularResumenCurso(c);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${c.codigo || 'UNSA'}</strong></td>
+                <td><strong>${c.nombre}</strong></td>
+                <td style="text-align: center;">${c.creditos || 3}</td>
+                <td style="text-align: center;">${res.pctEvaluado}% (${res.notasLlenadas}/6)</td>
+                <td style="text-align: center; font-weight: 700;">${res.promedioActual.toFixed(2)}</td>
+                <td style="text-align: right;"><span class="rep-diag-badge ${res.badgeClass}">${res.badgeTexto}</span></td>
+            `;
+            tablaCuerpo.appendChild(tr);
+        });
+
+        // Lanzar diálogo de impresión
+        window.print();
+    }
+
+    if (btnReporteSemestral) {
+        btnReporteSemestral.addEventListener('click', generarReporteSemestralPDF);
+    }
+
+    // Alternar tema oscuro/claro
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', alternarTema);
+    }
+
+    actualizarBotonesTema(obtenerTemaActual());
     actualizarDashboard();
 });
+

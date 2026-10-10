@@ -332,6 +332,60 @@ document.addEventListener('DOMContentLoaded', () => {
         btnReporteSemestral.addEventListener('click', generarReporteSemestralPDF);
     }
 
+    // =========================================================================
+    // RESPALDO JSON (DESCARGAR / RESTAURAR)
+    // =========================================================================
+    const btnExportarRespaldo = document.getElementById('btn-exportar-respaldo');
+    const btnImportarRespaldo = document.getElementById('btn-importar-respaldo');
+    const inputImportarRespaldo = document.getElementById('input-importar-respaldo');
+
+    function descargarRespaldo() {
+        const contenido = JSON.stringify(crearRespaldo(), null, 2);
+        const url = URL.createObjectURL(new Blob([contenido], { type: 'application/json' }));
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = `respaldo-simulador-unsa-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+
+    function restaurarDesdeArchivo(archivo) {
+        const lector = new FileReader();
+        lector.onload = () => {
+            try {
+                const cursos = validarRespaldo(JSON.parse(lector.result));
+                const mensaje = `El respaldo contiene ${cursos.length} asignatura(s). ` +
+                    `Se reemplazarán las ${cursosActuales.length} asignatura(s) actuales. ¿Deseas continuar?`;
+                if (confirm(mensaje)) {
+                    restaurarCursos(cursos);
+                    actualizarDashboard();
+                    alert('Respaldo restaurado correctamente.');
+                }
+            } catch (error) {
+                const detalle = error instanceof SyntaxError ? 'el archivo no es un JSON válido.' : error.message;
+                alert(`No se pudo restaurar el respaldo: ${detalle}`);
+            }
+        };
+        lector.onerror = () => alert('No se pudo leer el archivo seleccionado.');
+        lector.readAsText(archivo);
+    }
+
+    if (btnExportarRespaldo) {
+        btnExportarRespaldo.addEventListener('click', descargarRespaldo);
+    }
+
+    if (btnImportarRespaldo && inputImportarRespaldo) {
+        btnImportarRespaldo.addEventListener('click', () => inputImportarRespaldo.click());
+        inputImportarRespaldo.addEventListener('change', () => {
+            const archivo = inputImportarRespaldo.files[0];
+            // Limpiar el valor permite volver a elegir el mismo archivo después
+            inputImportarRespaldo.value = '';
+            if (archivo) restaurarDesdeArchivo(archivo);
+        });
+    }
+
     // Alternar tema oscuro/claro
     const btnThemeToggle = document.getElementById('btn-theme-toggle');
     if (btnThemeToggle) {

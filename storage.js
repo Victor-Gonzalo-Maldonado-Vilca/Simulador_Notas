@@ -393,6 +393,80 @@ function calcularMetricasGlobales(cursos) {
 }
 
 // ==========================================================================
+// RESPALDO DE DATOS (EXPORTAR / RESTAURAR JSON)
+// ==========================================================================
+const RESPALDO_APP = 'unsa-simulador-notas';
+const RESPALDO_VERSION = 1;
+
+/**
+ * Arma el contenido del archivo de respaldo con todas las asignaturas.
+ */
+function crearRespaldo() {
+    return {
+        app: RESPALDO_APP,
+        version: RESPALDO_VERSION,
+        fechaExportacion: new Date().toISOString(),
+        cursos: obtenerCursos()
+    };
+}
+
+/**
+ * Valida y normaliza las asignaturas de un respaldo.
+ * Acepta el formato de crearRespaldo() o directamente una lista de cursos.
+ * Lanza un Error con un mensaje legible si el contenido no es válido.
+ */
+function validarRespaldo(datos) {
+    const lista = Array.isArray(datos) ? datos : (datos && Array.isArray(datos.cursos) ? datos.cursos : null);
+    if (!lista) {
+        throw new Error('el archivo no contiene una lista de asignaturas.');
+    }
+    if (lista.length === 0) {
+        throw new Error('el respaldo no contiene asignaturas.');
+    }
+
+    const esValor = v => typeof v === 'number' || typeof v === 'string';
+    const idsUsados = new Set();
+
+    return lista.map((c, i) => {
+        if (!c || typeof c !== 'object' || typeof c.nombre !== 'string' || c.nombre.trim() === '') {
+            throw new Error(`la asignatura #${i + 1} no tiene un nombre válido.`);
+        }
+
+        let id = typeof c.id === 'string' && c.id ? c.id : `curso_${Date.now()}_${i}`;
+        if (idsUsados.has(id)) id = `${id}_${i}`;
+        idsUsados.add(id);
+
+        const notas = {};
+        const pesos = {};
+        EVALUACIONES.forEach(ev => {
+            const nota = c.notas ? c.notas[ev.notaId] : '';
+            const peso = c.pesos ? c.pesos[ev.pesoId] : '';
+            notas[ev.notaId] = esValor(nota) ? nota : '';
+            pesos[ev.pesoId] = esValor(peso) ? peso : '';
+        });
+
+        return {
+            id,
+            nombre: c.nombre.trim(),
+            codigo: typeof c.codigo === 'string' && c.codigo.trim() ? c.codigo.trim() : 'UNSA',
+            creditos: parseInt(c.creditos) || 3,
+            notaMeta: parsearNotaMeta(c.notaMeta),
+            notas,
+            pesos,
+            fechaModificacion: typeof c.fechaModificacion === 'string' ? c.fechaModificacion : new Date().toISOString()
+        };
+    });
+}
+
+/**
+ * Reemplaza todas las asignaturas guardadas por las de un respaldo ya validado.
+ */
+function restaurarCursos(cursos) {
+    guardarTodosLosCursos(cursos);
+    localStorage.removeItem(ACTIVE_COURSE_KEY);
+}
+
+// ==========================================================================
 // GESTIÓN DE TEMA (MODO OSCURO / MODO CLARO)
 // ==========================================================================
 const THEME_KEY = 'unsa_tema_interfaz';

@@ -73,6 +73,9 @@ Simulador_Notas/
 ├── cursos.js         # Controlador del panel: tarjetas, formularios, perfil, respaldo y consolidado
 ├── script.js         # Controlador del simulador: formulario, resultados, autoguardado y ficha PDF
 ├── grafico.js        # Gráfico de escenarios (SVG) para el simulador y el PDF
+├── nube.js           # Conexión con Supabase para los datos compartidos (en preparación)
+├── supabase/
+│   └── schema.sql    # Tablas, reglas de seguridad (RLS) y moderación de la base compartida
 ├── styles.css        # Estilos, modo oscuro, diseño adaptable y reglas de impresión
 └── README.md         # Documentación del proyecto
 ```
@@ -83,3 +86,11 @@ Simulador_Notas/
 - Si borras los datos del navegador, se pierden las asignaturas. Usa **Respaldo** periódicamente para tener una copia en archivo.
 - Para pasar tus datos a otro dispositivo: **Respaldo** en el original y **Restaurar** en el nuevo.
 - Las calificaciones de docentes y los comentarios son **personales**: por ahora no se comparten con otros estudiantes. Los datos están organizados (docentes, calificaciones y comentarios por separado) para poder conectarlos más adelante a una base de datos compartida.
+
+## ☁️ Datos compartidos (en preparación)
+
+La siguiente etapa es compartir el catálogo de asignaturas, los docentes, sus calificaciones y los comentarios entre estudiantes de la misma universidad, usando [Supabase](https://supabase.com). Las notas de cada estudiante seguirán guardándose solo en su navegador.
+
+- `supabase/schema.sql` crea las tablas y sus reglas de seguridad: cualquiera puede leer lo compartido; para agregar, calificar o comentar se necesita iniciar sesión, y cada usuario solo puede modificar lo suyo. Los comentarios son anónimos para los demás y se ocultan automáticamente al recibir 3 reportes.
+- Para instalarlo: en Supabase, **SQL Editor → New query**, pegar el archivo completo y **Run**. Se puede ejecutar más de una vez.
+- `nube.js` contiene la URL del proyecto y la clave pública (*publishable*), que está pensada para ir en el navegador. La contraseña de la base de datos y la *secret key* nunca deben ir en el código.

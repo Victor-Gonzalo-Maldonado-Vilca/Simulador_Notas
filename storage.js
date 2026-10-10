@@ -350,7 +350,7 @@ function calcularMetricasGlobales(cursos) {
         creditosTotales += creditos;
         sumaNotasPonderadasCreditos += (resumen.promedioActual * creditos);
 
-        if (resumen.badgeClass === 'aprobado' || resumen.notaRequerida <= 0) {
+        if (resumen.badgeClass === 'aprobado') {
             cursosAprobados++;
         } else if (resumen.badgeClass === 'critico' || resumen.badgeClass === 'desaprobado' || resumen.badgeClass === 'exigente') {
             cursosEnRiesgo++;

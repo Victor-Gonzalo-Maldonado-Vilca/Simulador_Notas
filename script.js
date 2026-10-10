@@ -533,6 +533,11 @@ function generarReportePDF() {
     let totalPesos = 0;
     let totalPuntos = 0;
 
+    // Suma de pesos para normalizar aportes (igual que en el simulador)
+    const sumaPesosNormalizacion = EVALUACIONES.reduce(
+        (acc, ev) => acc + (parseFloat(document.getElementById(ev.pesoId).value) || 0), 0
+    );
+
     const fases = [
         { nombre: 'Fase I • Unidad 01', evals: [EVALUACIONES[0], EVALUACIONES[1]] },
         { nombre: 'Fase II • Unidad 02', evals: [EVALUACIONES[2], EVALUACIONES[3]] },
@@ -562,7 +567,7 @@ function generarReportePDF() {
 
             if (notaVal !== '') {
                 const n = parseFloat(notaVal);
-                const aporte = (n * pesoVal) / 100;
+                const aporte = sumaPesosNormalizacion > 0 ? (n * pesoVal) / sumaPesosNormalizacion : 0;
                 califTexto = n.toFixed(2);
                 aporteTexto = `+${aporte.toFixed(2)} pts`;
                 subtotalPuntosFase += aporte;

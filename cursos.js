@@ -22,7 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function actualizarDashboard() {
         cursosActuales = obtenerCursos();
         actualizarMetricas();
-        renderizarTarjetas(cursosActuales);
+        renderizarTarjetas(filtrarCursos(cursosActuales));
+    }
+
+    // Aplica el término del buscador (si hay uno) para no perder el filtro al re-renderizar
+    function filtrarCursos(lista) {
+        const termino = inputBuscar ? inputBuscar.value.toLowerCase().trim() : '';
+        if (!termino) return lista;
+        return lista.filter(c =>
+            c.nombre.toLowerCase().includes(termino) ||
+            (c.codigo && c.codigo.toLowerCase().includes(termino))
+        );
     }
 
     // Actualizar métricas globales
@@ -62,12 +72,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="course-code-badge">${codigo}</span>
                         <span class="course-credits-badge">${creditos}</span>
                     </div>
-                    <button type="button" class="btn-icon-danger" title="Eliminar Asignatura" data-id="${idSeguro}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                    </button>
+                    <div class="course-card-actions">
+                        <button type="button" class="btn-icon-edit" title="Editar Asignatura" data-id="${idSeguro}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn-icon-danger" title="Eliminar Asignatura" data-id="${idSeguro}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <h3 class="course-title">${nombre}</h3>
@@ -117,6 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = `simulador.html?id=${curso.id}`;
             });
 
+            // Event listener para editar
+            card.querySelector('.btn-icon-edit').addEventListener('click', (e) => {
+                e.stopPropagation();
+                abrirModalEditar(curso);
+            });
+
             // Event listener para eliminar
             card.querySelector('.btn-icon-danger').addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -132,25 +156,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Buscador en tiempo real
     if (inputBuscar) {
-        inputBuscar.addEventListener('input', (e) => {
-            const termino = e.target.value.toLowerCase().trim();
-            const filtrados = cursosActuales.filter(c => 
-                c.nombre.toLowerCase().includes(termino) || 
-                (c.codigo && c.codigo.toLowerCase().includes(termino))
-            );
-            renderizarTarjetas(filtrados);
+        inputBuscar.addEventListener('input', () => {
+            renderizarTarjetas(filtrarCursos(cursosActuales));
         });
     }
 
     // Modal Control
+    const btnGuardarCurso = document.getElementById('btn-guardar-curso');
+
     function abrirModalNuevo() {
         formCurso.reset();
+        sincronizarRadioCards();
         document.getElementById('curso-id').value = '';
         modalTitulo.textContent = 'Nueva Asignatura';
+        btnGuardarCurso.textContent = 'Guardar Asignatura';
         document.getElementById('curso-meta').value = '10.5';
         document.getElementById('curso-creditos').value = '4';
         document.getElementById('grupo-plantilla-pesos').style.display = 'block';
         modalCurso.style.display = 'flex';
+    }
+
+    // En edición no se muestra la plantilla de pesos: los pesos se ajustan en el simulador
+    function abrirModalEditar(curso) {
+        formCurso.reset();
+        document.getElementById('curso-id').value = curso.id;
+        document.getElementById('curso-nombre').value = curso.nombre;
+        document.getElementById('curso-codigo').value = curso.codigo || '';
+        document.getElementById('curso-creditos').value = curso.creditos || 3;
+        document.getElementById('curso-meta').value = parsearNotaMeta(curso.notaMeta);
+        document.getElementById('grupo-plantilla-pesos').style.display = 'none';
+        modalTitulo.textContent = 'Editar Asignatura';
+        btnGuardarCurso.textContent = 'Guardar Cambios';
+        modalCurso.style.display = 'flex';
+    }
+
+    // Marca visualmente la tarjeta del radio seleccionado (form.reset() no actualiza las clases)
+    function sincronizarRadioCards() {
+        document.querySelectorAll('.radio-card').forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            card.classList.toggle('selected', !!(radio && radio.checked));
+        });
     }
 
     function cerrarModal() {
@@ -175,15 +220,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Guardar nuevo curso desde modal
+    // Guardar curso nuevo o editado desde el modal
     if (formCurso) {
         formCurso.addEventListener('submit', (e) => {
             e.preventDefault();
 
+            const idEdicion = document.getElementById('curso-id').value;
             const nombre = document.getElementById('curso-nombre').value.trim();
             const codigo = document.getElementById('curso-codigo').value.trim();
             const creditos = parseInt(document.getElementById('curso-creditos').value) || 3;
             const meta = parsearNotaMeta(document.getElementById('curso-meta').value);
+
+            // Edición: se actualizan solo los datos generales, conservando notas y pesos
+            if (idEdicion) {
+                const existente = obtenerCursoPorId(idEdicion);
+                if (!existente) {
+                    alert('La asignatura que intentas editar ya no existe.');
+                    cerrarModal();
+                    actualizarDashboard();
+                    return;
+                }
+                Object.assign(existente, { nombre, codigo: codigo || 'UNSA', creditos, notaMeta: meta });
+                guardarCurso(existente);
+                cerrarModal();
+                actualizarDashboard();
+                return;
+            }
 
             const plantillaSeleccionada = document.querySelector('input[name="plantilla-pesos"]:checked').value;
 

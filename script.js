@@ -484,6 +484,10 @@ formulario.addEventListener('submit', function(event) {
 
 if (btnLimpiar) {
     btnLimpiar.addEventListener('click', function() {
+        const nombreCurso = cursoActual ? cursoActual.nombre : 'esta asignatura';
+        if (!confirm(`¿Deseas borrar todas las notas y pesos de "${nombreCurso}"? Esta acción no se puede deshacer.`)) {
+            return;
+        }
         formulario.reset();
         notaMetaInput.value = "10.5";
         if (alertaBox) alertaBox.classList.remove('show');

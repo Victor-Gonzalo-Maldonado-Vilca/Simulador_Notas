@@ -24,6 +24,7 @@ const autosaveTag = document.getElementById('autosave-tag');
 const metricasSecundarias = document.getElementById('metricas-secundarias');
 const metricAcumulado = document.getElementById('metric-acumulado');
 const metricPesoEvaluado = document.getElementById('metric-peso-evaluado');
+const metricParcial = document.getElementById('metric-parcial');
 const metricMaximo = document.getElementById('metric-maximo');
 const metricMinimo = document.getElementById('metric-minimo');
 const metricMeta = document.getElementById('metric-meta');
@@ -361,6 +362,7 @@ function mostrarMetricas(resumen, textoPesoEvaluado) {
     metricasSecundarias.style.display = 'grid';
     metricAcumulado.textContent = resumen.promedioActual.toFixed(2);
     metricPesoEvaluado.textContent = textoPesoEvaluado;
+    metricParcial.textContent = resumen.promedioParcial !== null ? resumen.promedioParcial.toFixed(2) : '--';
     metricMaximo.textContent = resumen.mejorCaso.toFixed(2);
     metricMinimo.textContent = resumen.peorCaso.toFixed(2);
     metricMeta.textContent = resumen.notaMeta.toFixed(2);

@@ -258,6 +258,8 @@ function calcularResumenCurso(curso) {
         notasLlenadas,
         pendientes,
         promedioActual: sumaPesos > 0 ? puntosAcumulados / sumaPesos : 0,
+        // Promedio solo sobre lo ya evaluado (null si aún no hay notas con peso)
+        promedioParcial: pesoEvaluado > 0 ? puntosAcumulados / pesoEvaluado : null,
         pctEvaluado: sumaPesos > 0 ? Math.round((pesoEvaluado / sumaPesos) * 100) : 0
     };
 
@@ -268,6 +270,7 @@ function calcularResumenCurso(curso) {
             badgeClass: 'sin_datos',
             badgeTexto: 'Notas fuera de rango',
             promedioActual: 0,
+            promedioParcial: null,
             notaRequerida: 0,
             mejorCaso: 0,
             peorCaso: 0,

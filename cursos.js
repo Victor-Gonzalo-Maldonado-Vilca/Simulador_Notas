@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="course-card-footer">
                     <div class="course-mini-stats">
                         <span>Acumulado: <strong>${resumen.promedioActual.toFixed(2)}</strong></span>
+                        <span>Parcial: <strong>${resumen.promedioParcial !== null ? resumen.promedioParcial.toFixed(2) : '--'}</strong></span>
                         <span>Techo: <strong>${resumen.mejorCaso.toFixed(2)}</strong></span>
                     </div>
                     <button type="button" class="btn btn-primary btn-sm btn-abrir-simulador" data-id="${idSeguro}">

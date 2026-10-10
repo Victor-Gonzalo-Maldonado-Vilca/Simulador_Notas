@@ -1173,9 +1173,24 @@ input[type="number"],
   gap: 0.75rem;
 }
 
+/* Con 5 métricas, la última ocupa toda la fila en móvil */
+.metrics-grid .metric-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 680px) {
   .metrics-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .metrics-grid .metric-card:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 960px) {
+  .metrics-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 

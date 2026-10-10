@@ -1,7 +1,3 @@
-// ==========================================================================
-// SIMULADOR DE NOTAS ACADÉMICO - MODO PREDICTIVO Y MULTICURSO
-// ==========================================================================
-
 // Elementos principales del DOM
 const formulario = document.getElementById('formulario_notas');
 const resultadoElement = document.getElementById('resultado');
@@ -32,15 +28,7 @@ const metricMaximo = document.getElementById('metric-maximo');
 const metricMinimo = document.getElementById('metric-minimo');
 const metricMeta = document.getElementById('metric-meta');
 
-// Configuración de las 6 evaluaciones
-const EVALUACIONES = [
-    { id: 1, nombre: 'Examen Parcial 1', unidad: 'Unidad 01', notaId: 'nota1', pesoId: 'peso1' },
-    { id: 2, nombre: 'Evaluación Continua 1', unidad: 'Unidad 01', notaId: 'nota2', pesoId: 'peso2' },
-    { id: 3, nombre: 'Examen Parcial 2', unidad: 'Unidad 02', notaId: 'nota3', pesoId: 'peso3' },
-    { id: 4, nombre: 'Evaluación Continua 2', unidad: 'Unidad 02', notaId: 'nota4', pesoId: 'peso4' },
-    { id: 5, nombre: 'Examen Parcial 3', unidad: 'Unidad 03', notaId: 'nota5', pesoId: 'peso5' },
-    { id: 6, nombre: 'Evaluación Continua 3', unidad: 'Unidad 03', notaId: 'nota6', pesoId: 'peso6' }
-];
+// EVALUACIONES, NOTA_MAXIMA y el motor de cálculo se definen en storage.js
 
 let cursoActual = null;
 let alertaTimeout = null;
@@ -121,7 +109,7 @@ function cargarDatosCursoEnFormulario(curso) {
 
     // Nota Meta
     if (notaMetaInput) {
-        notaMetaInput.value = (curso.notaMeta !== undefined && curso.notaMeta !== null) ? curso.notaMeta : 10.5;
+        notaMetaInput.value = (curso.notaMeta !== undefined && curso.notaMeta !== null) ? curso.notaMeta : NOTA_META_DEFECTO;
     }
 
     // Cargar notas y pesos
@@ -144,21 +132,21 @@ function cargarDatosCursoEnFormulario(curso) {
     calcularOSimular(false);
 }
 
+// Lee notas, pesos y meta del formulario con la misma forma que un curso guardado
+function leerDatosFormulario() {
+    const notas = {};
+    const pesos = {};
+    EVALUACIONES.forEach(ev => {
+        notas[ev.notaId] = document.getElementById(ev.notaId).value.trim();
+        pesos[ev.pesoId] = document.getElementById(ev.pesoId).value.trim();
+    });
+    return { notaMeta: parsearNotaMeta(notaMetaInput.value), notas, pesos };
+}
+
 function autoGuardarCurso() {
     if (!cursoActual) return;
 
-    cursoActual.notaMeta = parseFloat(notaMetaInput.value) || 10.5;
-    cursoActual.notas = cursoActual.notas || {};
-    cursoActual.pesos = cursoActual.pesos || {};
-
-    EVALUACIONES.forEach(ev => {
-        const inputNota = document.getElementById(ev.notaId);
-        const inputPeso = document.getElementById(ev.pesoId);
-
-        cursoActual.notas[ev.notaId] = inputNota.value.trim();
-        cursoActual.pesos[ev.pesoId] = inputPeso.value.trim();
-    });
-
+    Object.assign(cursoActual, leerDatosFormulario());
     guardarCurso(cursoActual);
 
     // Animación visual de guardado
@@ -257,178 +245,141 @@ if (btnPresetIguales) {
 // =========================================================================
 
 function calcularOSimular(mostrarAlertas = true) {
-    const metaInputVal = parseFloat(notaMetaInput.value);
-    const notaMeta = isNaN(metaInputVal) ? 10.5 : metaInputVal;
+    actualizarContadores();
 
-    if (notaMeta < 0 || notaMeta > 20) {
+    const datos = leerDatosFormulario();
+    const notaMeta = datos.notaMeta;
+
+    if (notaMeta < 0 || notaMeta > NOTA_MAXIMA) {
         if (mostrarAlertas) {
-            mostrarAlerta("La nota meta debe estar entre 0 y 20.", "danger");
+            mostrarAlerta(`La nota meta debe estar entre 0 y ${NOTA_MAXIMA}.`, "danger");
         }
+        mostrarResultadoInvalido("Nota meta fuera de rango", `Corrige la nota meta: debe estar entre 0 y ${NOTA_MAXIMA}.`);
         return;
     }
 
-    const { sumaPesos } = actualizarContadores();
+    // Cálculo compartido con el dashboard (storage.js)
+    const r = calcularResumenCurso(datos);
 
-    const completadas = [];
-    const pendientes = [];
-    let notasFueraDeRango = false;
-
-    EVALUACIONES.forEach(ev => {
-        const inputNota = document.getElementById(ev.notaId);
-        const inputPeso = document.getElementById(ev.pesoId);
-
-        const notaRaw = inputNota.value.trim();
-        const pesoVal = parseFloat(inputPeso.value) || 0;
-
-        if (notaRaw !== '') {
-            const notaNum = parseFloat(notaRaw);
-            if (notaNum < 0 || notaNum > 20) {
-                notasFueraDeRango = true;
-            }
-            completadas.push({
-                ...ev,
-                nota: notaNum,
-                peso: pesoVal
-            });
-        } else {
-            pendientes.push({
-                ...ev,
-                peso: pesoVal
-            });
+    if (r.estado === 'invalido') {
+        if (mostrarAlertas) {
+            mostrarAlerta(`Atención: Las calificaciones deben estar en la escala de 0 a ${NOTA_MAXIMA}.`, "danger");
         }
-    });
-
-    if (notasFueraDeRango && mostrarAlertas) {
-        mostrarAlerta("Atención: Las calificaciones deben estar en la escala de 0 a 20.", "danger");
+        mostrarResultadoInvalido("Calificaciones fuera de rango", `Corrige las calificaciones: deben estar entre 0 y ${NOTA_MAXIMA} para poder realizar el cálculo.`);
+        return;
     }
 
-    // Sin datos ingresados
-    if (completadas.length === 0 && sumaPesos === 0) {
+    if (r.estado === 'sin_pesos') {
         if (mostrarAlertas) {
-            mostrarAlerta("Por favor, ingresa tus notas y los pesos porcentuales correspondientes.");
+            if (r.notasLlenadas === 0) {
+                mostrarAlerta("Por favor, ingresa tus notas y los pesos porcentuales correspondientes.");
+            } else {
+                mostrarAlerta("Debes asignar los porcentajes (%) de las evaluaciones para realizar el cálculo. Puedes usar las plantillas de arriba.", "danger");
+            }
         }
         resetearResultado();
         return;
     }
 
-    // Sin pesos asignados
-    if (sumaPesos === 0) {
-        if (mostrarAlertas) {
-            mostrarAlerta("Debes asignar los porcentajes (%) de las evaluaciones para realizar el cálculo. Puedes usar las plantillas de arriba.", "danger");
-        }
-        return;
-    }
+    animarResultado();
 
-    // Animación visual
-    resultadoElement.style.transform = "scale(1.08)";
-    setTimeout(() => {
-        resultadoElement.style.transform = "scale(1)";
-    }, 180);
+    const nombreCurso = cursoActual ? escaparHtml(cursoActual.nombre) : 'la asignatura';
+    const metaTexto = notaMeta.toFixed(1);
 
-    // CASO 1: TODAS LAS NOTAS COMPLETAS
-    if (pendientes.length === 0) {
-        const sumaPonderada = completadas.reduce((acc, ev) => acc + (ev.nota * ev.peso), 0);
-        const promedio = sumaPonderada / sumaPesos;
+    // CASO 1: SIN EVALUACIONES PENDIENTES CON PESO (resultado final)
+    if (r.estado === 'completo') {
+        const promedio = r.promedioActual.toFixed(2);
 
         resultadoTipoEtiqueta.textContent = "Resultado Final Ponderado";
-        resultadoElement.textContent = promedio.toFixed(2);
+        resultadoElement.textContent = promedio;
+        estadoElement.className = `result-status-pill ${r.badgeClass}`;
+        estadoElement.textContent = `Condición: ${r.badgeClass === 'aprobado' ? 'Aprobado' : 'Desaprobado'} (Meta: ${metaTexto})`;
+        resultadoMensaje.innerHTML = r.pendientes.length === 0
+            ? `Evaluación completa de <strong>${nombreCurso}</strong>. El promedio final ponderado obtenido es <strong>${promedio}</strong> sobre 20.`
+            : `Las evaluaciones pendientes de <strong>${nombreCurso}</strong> tienen peso 0%, por lo que el promedio final ponderado es <strong>${promedio}</strong> sobre 20.`;
 
-        estadoElement.className = "result-status-pill";
-        if (promedio >= notaMeta) {
-            estadoElement.textContent = `Condición: Aprobado (Meta: ${notaMeta.toFixed(1)})`;
-            estadoElement.classList.add('aprobado');
-        } else {
-            estadoElement.textContent = `Condición: Desaprobado (Meta: ${notaMeta.toFixed(1)})`;
-            estadoElement.classList.add('desaprobado');
-        }
-
-        resultadoMensaje.innerHTML = `Evaluación completa de <strong>${cursoActual ? escaparHtml(cursoActual.nombre) : 'la asignatura'}</strong>. El promedio final ponderado obtenido es <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
-
-        metricasSecundarias.style.display = 'grid';
-        metricAcumulado.textContent = promedio.toFixed(2);
-        metricPesoEvaluado.textContent = "100% evaluado";
-        metricMaximo.textContent = promedio.toFixed(2);
-        metricMinimo.textContent = promedio.toFixed(2);
-        metricMeta.textContent = notaMeta.toFixed(2);
-
-        if (sumaPesos !== 100 && mostrarAlertas) {
-            mostrarAlerta(`Nota: La suma total de los pesos es ${sumaPesos.toFixed(1)}%, no 100%. El cálculo se normalizó proporcionalmente.`, 'warning');
-        }
+        mostrarMetricas(r, "100% evaluado");
+        avisarSiPesosNoSuman100(r.sumaPesos, mostrarAlertas, `Nota: La suma total de los pesos es ${r.sumaPesos.toFixed(1)}%, no 100%. El cálculo se normalizó proporcionalmente.`);
         return;
     }
 
     // CASO 2: MODO PREDICTIVO
-    const pesoEvaluado = completadas.reduce((acc, ev) => acc + ev.peso, 0);
-    const pesoPendiente = pendientes.reduce((acc, ev) => acc + ev.peso, 0);
+    const req = r.notaRequerida.toFixed(2);
+    const nombresPendientes = r.pendientes.map(nombre => `<strong>${nombre}</strong>`).join(', ');
+    const textoEvaluaciones = r.pendientes.length === 1
+        ? `en ${nombresPendientes}`
+        : `en promedio en las ${r.pendientes.length} evaluaciones pendientes (${nombresPendientes})`;
 
-    if (pesoPendiente === 0) {
-        if (mostrarAlertas) {
-            mostrarAlerta("Las evaluaciones pendientes tienen peso 0%. Asigna porcentajes para calcular la proyección requerida.", "warning");
-        }
-        return;
-    }
-
-    const puntosAcumulados = completadas.reduce((acc, ev) => acc + (ev.nota * ev.peso), 0);
-    const notaRequerida = (notaMeta * sumaPesos - puntosAcumulados) / pesoPendiente;
-
-    const mejorCasoMax = (puntosAcumulados + 20 * pesoPendiente) / sumaPesos;
-    const peorCasoMin = (puntosAcumulados + 0 * pesoPendiente) / sumaPesos;
-    const aporteActual = puntosAcumulados / sumaPesos;
-    const pctEvaluado = ((pesoEvaluado / sumaPesos) * 100).toFixed(0);
-
-    const nombresPendientes = pendientes.map(p => `<strong>${p.nombre}</strong>`).join(', ');
-    const textoEvaluaciones = pendientes.length === 1 
-        ? `en ${nombresPendientes}` 
-        : `en promedio en las ${pendientes.length} evaluaciones pendientes (${nombresPendientes})`;
-
-    resultadoTipoEtiqueta.textContent = pendientes.length === 1 
-        ? `Calificación requerida en ${pendientes[0].nombre}` 
+    resultadoTipoEtiqueta.textContent = r.pendientes.length === 1
+        ? `Calificación requerida en ${r.pendientes[0]}`
         : `Calificación promedio requerida en pendientes`;
 
-    estadoElement.className = "result-status-pill";
+    const presentacion = {
+        aprobado: {
+            estado: "Meta asegurada (Aprobación garantizada)",
+            mensaje: `Con las calificaciones registradas en <strong>${nombreCurso}</strong>, el puntaje acumulado es suficiente para alcanzar la meta de <strong>${metaTexto}</strong>. Tu promedio final mínimo garantizado es <strong>${r.peorCaso.toFixed(2)}</strong>.`
+        },
+        accesible: {
+            estado: `Exigencia regular (${req})`,
+            mensaje: `Para alcanzar la meta de <strong>${metaTexto}</strong>, se requiere una calificación mínima de <strong>${req}</strong> ${textoEvaluaciones}.`
+        },
+        moderado: {
+            estado: `Exigencia moderada (${req})`,
+            mensaje: `Para alcanzar la meta de <strong>${metaTexto}</strong>, se requiere promediar <strong>${req}</strong> ${textoEvaluaciones}.`
+        },
+        exigente: {
+            estado: `Alta exigencia (${req})`,
+            mensaje: `Para alcanzar la meta de <strong>${metaTexto}</strong>, se requiere una calificación promedio de <strong>${req}</strong> ${textoEvaluaciones}.`
+        },
+        critico: {
+            estado: `Exigencia crítica (${req})`,
+            mensaje: `Condición de alta rigurosidad: se requiere una calificación de <strong>${req}</strong> ${textoEvaluaciones} para alcanzar la meta de <strong>${metaTexto}</strong>.`
+        },
+        desaprobado: {
+            estado: `Condición fuera de rango (> ${NOTA_MAXIMA}.00)`,
+            mensaje: `La meta de <strong>${metaTexto}</strong> no es matemáticamente alcanzable en la escala vigesimal, ya que requeriría <strong>${req}</strong>. El promedio máximo alcanzable con nota 20 en lo pendiente es <strong>${r.mejorCaso.toFixed(2)}</strong>.`
+        }
+    }[r.exigencia];
 
-    if (notaRequerida <= 0) {
-        resultadoElement.textContent = "0.00";
-        estadoElement.textContent = "Meta asegurada (Aprobación garantizada)";
-        estadoElement.classList.add('aprobado');
-        resultadoMensaje.innerHTML = `Con las calificaciones registradas en <strong>${cursoActual ? escaparHtml(cursoActual.nombre) : 'la asignatura'}</strong>, el puntaje acumulado es suficiente para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>. Tu promedio final mínimo garantizado es <strong>${peorCasoMin.toFixed(2)}</strong>.`;
-    } else if (notaRequerida <= 10.5) {
-        resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `Exigencia regular (${notaRequerida.toFixed(2)})`;
-        estadoElement.classList.add('accesible');
-        resultadoMensaje.innerHTML = `Para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>, se requiere una calificación mínima de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
-    } else if (notaRequerida <= 14.0) {
-        resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `Exigencia moderada (${notaRequerida.toFixed(2)})`;
-        estadoElement.classList.add('moderado');
-        resultadoMensaje.innerHTML = `Para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>, se requiere promediar <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
-    } else if (notaRequerida <= 17.0) {
-        resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `Alta exigencia (${notaRequerida.toFixed(2)})`;
-        estadoElement.classList.add('exigente');
-        resultadoMensaje.innerHTML = `Para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>, se requiere una calificación promedio de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones}.`;
-    } else if (notaRequerida <= 20.0) {
-        resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = `Exigencia crítica (${notaRequerida.toFixed(2)})`;
-        estadoElement.classList.add('critico');
-        resultadoMensaje.innerHTML = `Condición de alta rigurosidad: se requiere una calificación de <strong>${notaRequerida.toFixed(2)}</strong> ${textoEvaluaciones} para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>.`;
-    } else {
-        resultadoElement.textContent = notaRequerida.toFixed(2);
-        estadoElement.textContent = "Condición fuera de rango (> 20.00)";
-        estadoElement.classList.add('desaprobado');
-        resultadoMensaje.innerHTML = `La meta de <strong>${notaMeta.toFixed(1)}</strong> no es matemáticamente alcanzable en la escala vigesimal, ya que requeriría <strong>${notaRequerida.toFixed(2)}</strong>. El promedio máximo alcanzable con nota 20 en lo pendiente es <strong>${mejorCasoMax.toFixed(2)}</strong>.`;
-    }
+    resultadoElement.textContent = r.exigencia === 'aprobado' ? "0.00" : req;
+    estadoElement.className = `result-status-pill ${r.exigencia}`;
+    estadoElement.textContent = presentacion.estado;
+    resultadoMensaje.innerHTML = presentacion.mensaje;
 
+    mostrarMetricas(r, `${r.pctEvaluado}% evaluado`);
+    avisarSiPesosNoSuman100(r.sumaPesos, mostrarAlertas, `Los pesos actuales suman ${r.sumaPesos.toFixed(1)}%. El simulador normalizó los porcentajes sobre el total actual.`);
+}
+
+function animarResultado() {
+    resultadoElement.style.transform = "scale(1.08)";
+    setTimeout(() => {
+        resultadoElement.style.transform = "scale(1)";
+    }, 180);
+}
+
+function mostrarMetricas(resumen, textoPesoEvaluado) {
     metricasSecundarias.style.display = 'grid';
-    metricAcumulado.textContent = aporteActual.toFixed(2);
-    metricPesoEvaluado.textContent = `${pctEvaluado}% evaluado`;
-    metricMaximo.textContent = mejorCasoMax.toFixed(2);
-    metricMinimo.textContent = peorCasoMin.toFixed(2);
-    metricMeta.textContent = notaMeta.toFixed(2);
+    metricAcumulado.textContent = resumen.promedioActual.toFixed(2);
+    metricPesoEvaluado.textContent = textoPesoEvaluado;
+    metricMaximo.textContent = resumen.mejorCaso.toFixed(2);
+    metricMinimo.textContent = resumen.peorCaso.toFixed(2);
+    metricMeta.textContent = resumen.notaMeta.toFixed(2);
+}
 
-    if (sumaPesos !== 100 && mostrarAlertas) {
-        mostrarAlerta(`Los pesos actuales suman ${sumaPesos.toFixed(1)}%. El simulador normalizó los porcentajes sobre el total actual.`, 'warning');
+// Tolerancia para que plantillas como 16.67 + ... + 16.66 no disparen la alerta por redondeo
+function avisarSiPesosNoSuman100(sumaPesos, mostrarAlertas, mensaje) {
+    if (mostrarAlertas && Math.abs(sumaPesos - 100) > 0.01) {
+        mostrarAlerta(mensaje, 'warning');
     }
+}
+
+function mostrarResultadoInvalido(estadoTexto, mensaje) {
+    resultadoTipoEtiqueta.textContent = "Estado de la Simulación";
+    resultadoElement.textContent = "--";
+    estadoElement.className = "result-status-pill desaprobado";
+    estadoElement.textContent = estadoTexto;
+    resultadoMensaje.textContent = mensaje;
+    metricasSecundarias.style.display = 'none';
 }
 
 function resetearResultado() {
@@ -451,8 +402,8 @@ EVALUACIONES.forEach(ev => {
     if (inputNota) {
         inputNota.addEventListener('input', () => {
             const val = parseFloat(inputNota.value);
-            if (val > 20) {
-                mostrarAlerta(`La calificación no puede ser mayor a 20.`, "danger");
+            if (val < 0 || val > NOTA_MAXIMA) {
+                mostrarAlerta(`La calificación debe estar entre 0 y ${NOTA_MAXIMA}.`, "danger");
             }
             actualizarContadores();
             autoGuardarCurso();
@@ -489,7 +440,7 @@ if (btnLimpiar) {
             return;
         }
         formulario.reset();
-        notaMetaInput.value = "10.5";
+        notaMetaInput.value = NOTA_META_DEFECTO;
         if (alertaBox) alertaBox.classList.remove('show');
         actualizarContadores();
         autoGuardarCurso();
@@ -528,7 +479,7 @@ function generarReportePDF() {
     document.getElementById('rep-curso-nombre').textContent = cursoActual.nombre;
     document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'UNSA';
     document.getElementById('rep-curso-creditos').textContent = cursoActual.creditos || 3;
-    document.getElementById('rep-curso-meta').textContent = (parseFloat(notaMetaInput.value) || 10.5).toFixed(2);
+    document.getElementById('rep-curso-meta').textContent = parsearNotaMeta(notaMetaInput.value).toFixed(2);
 
     // Llenar tabla de evaluaciones
     const tablaCuerpo = document.getElementById('rep-tabla-cuerpo');
@@ -538,9 +489,7 @@ function generarReportePDF() {
     let totalPuntos = 0;
 
     // Suma de pesos para normalizar aportes (igual que en el simulador)
-    const sumaPesosNormalizacion = EVALUACIONES.reduce(
-        (acc, ev) => acc + (parseFloat(document.getElementById(ev.pesoId).value) || 0), 0
-    );
+    const { sumaPesos: sumaPesosNormalizacion } = calcularResumenCurso(leerDatosFormulario());
 
     const fases = [
         { nombre: 'Fase I • Unidad 01', evals: [EVALUACIONES[0], EVALUACIONES[1]] },

@@ -1,7 +1,3 @@
-// ==========================================================================
-// STORAGE.JS - MÓDULO DE PERSISTENCIA Y MODELO DE DATOS DE CURSOS
-// ==========================================================================
-
 const STORAGE_KEY = 'unsa_simulador_cursos_v1';
 const ACTIVE_COURSE_KEY = 'unsa_simulador_curso_activo_id';
 
@@ -63,7 +59,7 @@ const CURSOS_DEMO = [
         notaMeta: 10.5,
         notas: {
             nota1: 10.0,
-            nota2: 09.5,
+            nota2: 9.5,
             nota3: '',
             nota4: '',
             nota5: '',
@@ -175,160 +171,177 @@ function establecerCursoActivoId(id) {
     localStorage.setItem(ACTIVE_COURSE_KEY, id);
 }
 
+// ==========================================================================
+// MOTOR DE CÁLCULO COMPARTIDO (dashboard y simulador)
+// ==========================================================================
+
+const NOTA_MAXIMA = 20;
+const NOTA_META_DEFECTO = 10.5;
+
+// Configuración de las 6 evaluaciones
+const EVALUACIONES = [
+    { id: 1, nombre: 'Examen Parcial 1', unidad: 'Unidad 01', notaId: 'nota1', pesoId: 'peso1' },
+    { id: 2, nombre: 'Evaluación Continua 1', unidad: 'Unidad 01', notaId: 'nota2', pesoId: 'peso2' },
+    { id: 3, nombre: 'Examen Parcial 2', unidad: 'Unidad 02', notaId: 'nota3', pesoId: 'peso3' },
+    { id: 4, nombre: 'Evaluación Continua 2', unidad: 'Unidad 02', notaId: 'nota4', pesoId: 'peso4' },
+    { id: 5, nombre: 'Examen Parcial 3', unidad: 'Unidad 03', notaId: 'nota5', pesoId: 'peso5' },
+    { id: 6, nombre: 'Evaluación Continua 3', unidad: 'Unidad 03', notaId: 'nota6', pesoId: 'peso6' }
+];
+
+// Niveles de exigencia según la nota requerida en lo pendiente
+const NIVELES_EXIGENCIA = [
+    { max: 0, clase: 'aprobado' },
+    { max: 10.5, clase: 'accesible' },
+    { max: 14.0, clase: 'moderado' },
+    { max: 17.0, clase: 'exigente' },
+    { max: NOTA_MAXIMA, clase: 'critico' }
+];
+
+/**
+ * Convierte la nota meta a número; solo usa el valor por defecto si está vacía o no es numérica
+ * (una meta de 0 es válida).
+ */
+function parsearNotaMeta(valor) {
+    const numero = parseFloat(valor);
+    return isNaN(numero) ? NOTA_META_DEFECTO : numero;
+}
+
+/**
+ * Devuelve la clase de exigencia ('aprobado', 'accesible', ..., 'desaprobado' si supera 20).
+ */
+function clasificarExigencia(notaRequerida) {
+    const nivel = NIVELES_EXIGENCIA.find(n => notaRequerida <= n.max);
+    return nivel ? nivel.clase : 'desaprobado';
+}
+
 /**
  * Calcula el resumen académico y predictivo de un curso.
+ * Estados posibles: 'invalido', 'sin_pesos', 'completo', 'sin_datos', 'predictivo'.
  */
 function calcularResumenCurso(curso) {
     const notas = curso.notas || {};
     const pesos = curso.pesos || {};
-    const notaMeta = parseFloat(curso.notaMeta) || 10.5;
+    const notaMeta = parsearNotaMeta(curso.notaMeta);
 
     let sumaPesos = 0;
     let pesoEvaluado = 0;
     let pesoPendiente = 0;
     let puntosAcumulados = 0;
     let notasLlenadas = 0;
-    const pendientesNombres = [];
+    let notasFueraDeRango = false;
+    const pendientes = [];
 
-    const nombresEvaluaciones = [
-        'Examen Parcial 1',
-        'Evaluación Continua 1',
-        'Examen Parcial 2',
-        'Evaluación Continua 2',
-        'Examen Parcial 3',
-        'Evaluación Continua 3'
-    ];
-
-    for (let i = 1; i <= 6; i++) {
-        const notaRaw = notas[`nota${i}`];
-        const pesoVal = parseFloat(pesos[`peso${i}`]) || 0;
+    EVALUACIONES.forEach(ev => {
+        const notaRaw = notas[ev.notaId];
+        const notaVal = parseFloat(notaRaw);
+        const pesoVal = parseFloat(pesos[ev.pesoId]) || 0;
         sumaPesos += pesoVal;
 
-        if (notaRaw !== undefined && notaRaw !== null && notaRaw !== '' && !isNaN(parseFloat(notaRaw))) {
-            const notaVal = parseFloat(notaRaw);
-            puntosAcumulados += (notaVal * pesoVal);
+        if (notaRaw !== undefined && notaRaw !== null && String(notaRaw).trim() !== '' && !isNaN(notaVal)) {
+            if (notaVal < 0 || notaVal > NOTA_MAXIMA) {
+                notasFueraDeRango = true;
+            }
+            puntosAcumulados += notaVal * pesoVal;
             pesoEvaluado += pesoVal;
             notasLlenadas++;
         } else {
             pesoPendiente += pesoVal;
-            pendientesNombres.push(nombresEvaluaciones[i - 1]);
+            pendientes.push(ev.nombre);
         }
-    }
+    });
 
-    const pctEvaluado = sumaPesos > 0 ? (pesoEvaluado / sumaPesos) * 100 : 0;
-    const aporteActual = sumaPesos > 0 ? puntosAcumulados / sumaPesos : 0;
+    const base = {
+        notaMeta,
+        sumaPesos,
+        pesoEvaluado,
+        pesoPendiente,
+        notasLlenadas,
+        pendientes,
+        promedioActual: sumaPesos > 0 ? puntosAcumulados / sumaPesos : 0,
+        pctEvaluado: sumaPesos > 0 ? Math.round((pesoEvaluado / sumaPesos) * 100) : 0
+    };
+
+    if (notasFueraDeRango) {
+        return {
+            ...base,
+            estado: 'invalido',
+            badgeClass: 'sin_datos',
+            badgeTexto: 'Notas fuera de rango',
+            promedioActual: 0,
+            notaRequerida: 0,
+            mejorCaso: 0,
+            peorCaso: 0,
+            detalle: `Hay calificaciones fuera de la escala de 0 a ${NOTA_MAXIMA}. Corrígelas en el simulador.`
+        };
+    }
 
     if (sumaPesos === 0) {
         return {
+            ...base,
             estado: 'sin_pesos',
             badgeClass: 'sin_datos',
             badgeTexto: 'Sin pesos definidos',
-            promedioActual: 0,
             notaRequerida: 0,
-            pctEvaluado: 0,
-            notasLlenadas: 0,
             mejorCaso: 0,
             peorCaso: 0,
             detalle: 'Asigna porcentajes a las evaluaciones.'
         };
     }
 
-    if (notasLlenadas === 0) {
-        return {
-            estado: 'sin_datos',
-            badgeClass: 'sin_datos',
-            badgeTexto: 'Sin calificaciones',
-            promedioActual: 0,
-            notaRequerida: notaMeta,
-            pctEvaluado: 0,
-            notasLlenadas: 0,
-            mejorCaso: 20,
-            peorCaso: 0,
-            detalle: `Requiere ${notaMeta.toFixed(1)} en las evaluaciones.`
-        };
-    }
-
-    // Todas las notas llenas
-    if (notasLlenadas === 6) {
-        const promedioFinal = aporteActual;
-        const aprobado = promedioFinal >= notaMeta;
-        return {
-            estado: aprobado ? 'aprobado' : 'desaprobado',
-            badgeClass: aprobado ? 'aprobado' : 'desaprobado',
-            badgeTexto: aprobado ? `Aprobado (${promedioFinal.toFixed(2)})` : `Desaprobado (${promedioFinal.toFixed(2)})`,
-            promedioActual: promedioFinal,
-            notaRequerida: 0,
-            pctEvaluado: 100,
-            notasLlenadas: 6,
-            mejorCaso: promedioFinal,
-            peorCaso: promedioFinal,
-            detalle: `Curso culminado con promedio ${promedioFinal.toFixed(2)}.`
-        };
-    }
-
-    // Notas parciales (Modo predictivo)
-    const mejorCaso = (puntosAcumulados + 20 * pesoPendiente) / sumaPesos;
-    const peorCaso = (puntosAcumulados + 0 * pesoPendiente) / sumaPesos;
-
+    // Sin evaluaciones pendientes con peso: el promedio actual ya es el final
     if (pesoPendiente === 0) {
-        const promedio = aporteActual;
+        const promedio = base.promedioActual;
+        const aprobado = promedio >= notaMeta;
+        const todasCompletas = pendientes.length === 0;
         return {
-            estado: promedio >= notaMeta ? 'aprobado' : 'desaprobado',
-            badgeClass: promedio >= notaMeta ? 'aprobado' : 'desaprobado',
-            badgeTexto: `${promedio.toFixed(2)} / 20`,
-            promedioActual: promedio,
-            notaRequerida: 0,
+            ...base,
+            estado: 'completo',
+            badgeClass: aprobado ? 'aprobado' : 'desaprobado',
+            badgeTexto: todasCompletas
+                ? `${aprobado ? 'Aprobado' : 'Desaprobado'} (${promedio.toFixed(2)})`
+                : `${promedio.toFixed(2)} / 20`,
             pctEvaluado: 100,
-            notasLlenadas,
+            notaRequerida: 0,
             mejorCaso: promedio,
             peorCaso: promedio,
-            detalle: 'Todas las evaluaciones con peso asignado están completas.'
+            detalle: todasCompletas
+                ? `Curso culminado con promedio ${promedio.toFixed(2)}.`
+                : 'Todas las evaluaciones con peso asignado están completas.'
         };
     }
 
     const notaRequerida = (notaMeta * sumaPesos - puntosAcumulados) / pesoPendiente;
+    const mejorCaso = (puntosAcumulados + NOTA_MAXIMA * pesoPendiente) / sumaPesos;
+    const peorCaso = puntosAcumulados / sumaPesos;
+    const exigencia = clasificarExigencia(notaRequerida);
+    const prediccion = { ...base, notaRequerida, mejorCaso, peorCaso, exigencia };
 
-    let badgeClass = 'moderado';
-    let badgeTexto = `Requiere: ${notaRequerida.toFixed(2)}`;
-    let detalle = `Necesitas ${notaRequerida.toFixed(2)} en lo pendiente para llegar a ${notaMeta.toFixed(1)}.`;
-
-    if (notaRequerida <= 0) {
-        badgeClass = 'aprobado';
-        badgeTexto = 'Meta asegurada';
-        detalle = `Puntaje suficiente para alcanzar la meta de ${notaMeta.toFixed(1)}. Nota final mínima garantizada: ${peorCaso.toFixed(2)}.`;
-    } else if (notaRequerida <= 10.5) {
-        badgeClass = 'accesible';
-        badgeTexto = `Req. ${notaRequerida.toFixed(2)}`;
-        detalle = `Exigencia regular: se requiere promediar ${notaRequerida.toFixed(2)} en las evaluaciones pendientes.`;
-    } else if (notaRequerida <= 14.0) {
-        badgeClass = 'moderado';
-        badgeTexto = `Req. ${notaRequerida.toFixed(2)}`;
-        detalle = `Exigencia moderada: se requiere promediar ${notaRequerida.toFixed(2)} en las evaluaciones pendientes.`;
-    } else if (notaRequerida <= 17.0) {
-        badgeClass = 'exigente';
-        badgeTexto = `Alta exigencia: ${notaRequerida.toFixed(2)}`;
-        detalle = `Alta exigencia: se requiere una calificación promedio de ${notaRequerida.toFixed(2)} en lo pendiente.`;
-    } else if (notaRequerida <= 20.0) {
-        badgeClass = 'critico';
-        badgeTexto = `Crítico: ${notaRequerida.toFixed(2)}`;
-        detalle = `Exigencia crítica: se requiere promediar ${notaRequerida.toFixed(2)} en las evaluaciones pendientes.`;
-    } else {
-        badgeClass = 'desaprobado';
-        badgeTexto = 'Fuera de rango';
-        detalle = `Meta inalcanzable (requeriría ${notaRequerida.toFixed(2)}). Calificación máxima alcanzable: ${mejorCaso.toFixed(2)}.`;
+    if (notasLlenadas === 0) {
+        return {
+            ...prediccion,
+            estado: 'sin_datos',
+            badgeClass: 'sin_datos',
+            badgeTexto: 'Sin calificaciones',
+            detalle: `Requiere ${notaMeta.toFixed(1)} en las evaluaciones.`
+        };
     }
 
+    const req = notaRequerida.toFixed(2);
+    const textos = {
+        aprobado: ['Meta asegurada', `Puntaje suficiente para alcanzar la meta de ${notaMeta.toFixed(1)}. Nota final mínima garantizada: ${peorCaso.toFixed(2)}.`],
+        accesible: [`Req. ${req}`, `Exigencia regular: se requiere promediar ${req} en las evaluaciones pendientes.`],
+        moderado: [`Req. ${req}`, `Exigencia moderada: se requiere promediar ${req} en las evaluaciones pendientes.`],
+        exigente: [`Alta exigencia: ${req}`, `Alta exigencia: se requiere una calificación promedio de ${req} en lo pendiente.`],
+        critico: [`Crítico: ${req}`, `Exigencia crítica: se requiere promediar ${req} en las evaluaciones pendientes.`],
+        desaprobado: ['Fuera de rango', `Meta inalcanzable (requeriría ${req}). Calificación máxima alcanzable: ${mejorCaso.toFixed(2)}.`]
+    };
+
     return {
+        ...prediccion,
         estado: 'predictivo',
-        badgeClass,
-        badgeTexto,
-        promedioActual: aporteActual,
-        notaRequerida,
-        pctEvaluado: Math.round(pctEvaluado),
-        notasLlenadas,
-        mejorCaso,
-        peorCaso,
-        detalle
+        badgeClass: exigencia,
+        badgeTexto: textos[exigencia][0],
+        detalle: textos[exigencia][1]
     };
 }
 

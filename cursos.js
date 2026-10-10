@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="result-status-pill ${resumen.badgeClass}">
                         ${resumen.badgeTexto}
                     </span>
-                    <span class="course-target-hint">Meta: ${parseFloat(curso.notaMeta || 10.5).toFixed(1)}</span>
+                    <span class="course-target-hint">Meta: ${parsearNotaMeta(curso.notaMeta).toFixed(1)}</span>
                 </div>
 
                 <!-- Barra de Progreso del Ciclo -->
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const nombre = document.getElementById('curso-nombre').value.trim();
             const codigo = document.getElementById('curso-codigo').value.trim();
             const creditos = parseInt(document.getElementById('curso-creditos').value) || 3;
-            const meta = parseFloat(document.getElementById('curso-meta').value) || 10.5;
+            const meta = parsearNotaMeta(document.getElementById('curso-meta').value);
 
             const plantillaSeleccionada = document.querySelector('input[name="plantilla-pesos"]:checked').value;
 

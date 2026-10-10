@@ -22,6 +22,8 @@ Funciona por completo en el navegador: no necesita instalación, servidor ni con
 
 ### 2. Panel de asignaturas (`index.html`)
 - **Gestión de asignaturas:** crear, editar y eliminar cursos (nombre, código, créditos, docente y meta personal).
+- **Catálogo de asignaturas por universidad:** al escribir el código o el nombre aparecen las asignaturas que ya registraste y, al elegir una, se completan código, nombre y créditos. Los cursos se identifican por **universidad + código**, y el código se compara sin importar mayúsculas, espacios ni guiones (`mat-201` = `MAT 201` = `MAT201`).
+- **Sin cursos duplicados:** no se puede registrar dos veces el mismo código; si el nombre coincide con otro curso de código distinto, se avisa y se pide confirmación, con un botón para abrir el curso existente.
 - **Catálogo de docentes con sugerencias:** al escribir el docente aparecen los que ya registraste (sin importar tildes, mayúsculas ni títulos como "Dr." o "Ing."), con su calificación y número de cursos. Así cada docente queda registrado una sola vez.
 - **Calificación del docente:** de 1 a 5 estrellas; se aplica al docente en todos tus cursos.
 - **Métricas del semestre:** cursos matriculados, acumulado ponderado por créditos, metas aseguradas y cursos en seguimiento.
@@ -66,7 +68,8 @@ Simulador_Notas/
 ├── index.html        # Panel de asignaturas, perfil del estudiante y consolidado semestral
 ├── simulador.html    # Simulador predictivo por asignatura y ficha en PDF
 ├── storage.js        # Datos y lógica compartida: persistencia, catálogo de universidades, perfil,
-│                     # catálogo de docentes, comentarios, motor de cálculo, respaldo JSON y tema oscuro
+│                     # catálogos de docentes y asignaturas, comentarios, motor de cálculo,
+│                     # respaldo JSON y tema oscuro
 ├── cursos.js         # Controlador del panel: tarjetas, formularios, perfil, respaldo y consolidado
 ├── script.js         # Controlador del simulador: formulario, resultados, autoguardado y ficha PDF
 ├── grafico.js        # Gráfico de escenarios (SVG) para el simulador y el PDF

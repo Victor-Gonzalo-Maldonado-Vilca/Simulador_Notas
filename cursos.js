@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnGuardarCurso.textContent = 'Guardar Asignatura';
         prepararCampoMeta('');
         prepararCampoDocente(null);
+        prepararCamposAsignatura();
         document.getElementById('curso-creditos').value = '4';
         document.getElementById('grupo-plantilla-pesos').style.display = 'block';
         modalCurso.style.display = 'flex';
@@ -197,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('curso-creditos').value = curso.creditos || 3;
         prepararCampoMeta(curso.notaMeta ?? '');
         prepararCampoDocente(curso);
+        prepararCamposAsignatura();
         document.getElementById('grupo-plantilla-pesos').style.display = 'none';
         modalTitulo.textContent = 'Editar Asignatura';
         btnGuardarCurso.textContent = 'Guardar Cambios';
@@ -246,19 +248,222 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // CAMPO DOCENTE CON SUGERENCIAS (catálogo de docentes)
+    // CAMPOS CON SUGERENCIAS (componente reutilizable)
+    // =========================================================================
+
+    /**
+     * Convierte un input en un campo con lista de sugerencias accesible (teclado y mouse).
+     * - buscar(texto): devuelve los elementos a sugerir
+     * - describir(elemento): { titulo, detalleHtml } de cada opción
+     * - alElegir(elemento): se llama al seleccionar una opción
+     * - alEscribir(): se llama en cada cambio, después de actualizar la lista
+     */
+    function crearCampoConSugerencias({ input, lista, prefijoId, buscar, describir, alElegir, alEscribir }) {
+        let actuales = [];
+        let indice = -1;
+
+        function cerrar() {
+            lista.hidden = true;
+            lista.innerHTML = '';
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+            actuales = [];
+            indice = -1;
+        }
+
+        function marcar(nuevoIndice) {
+            indice = nuevoIndice;
+            lista.querySelectorAll('.combo-option').forEach((opcion, i) => {
+                const activa = i === indice;
+                opcion.classList.toggle('activa', activa);
+                opcion.setAttribute('aria-selected', String(activa));
+                if (activa) input.setAttribute('aria-activedescendant', opcion.id);
+            });
+        }
+
+        function elegir(elemento) {
+            cerrar();
+            alElegir(elemento);
+        }
+
+        function mostrar() {
+            actuales = buscar(input.value);
+            lista.innerHTML = '';
+            if (actuales.length === 0) {
+                cerrar();
+                return;
+            }
+            actuales.forEach((elemento, i) => {
+                const { titulo, detalleHtml } = describir(elemento);
+                const opcion = document.createElement('li');
+                opcion.className = 'combo-option';
+                opcion.id = `${prefijoId}-${i}`;
+                opcion.setAttribute('role', 'option');
+                opcion.setAttribute('aria-selected', 'false');
+
+                const textoTitulo = document.createElement('span');
+                textoTitulo.className = 'combo-option-name';
+                textoTitulo.textContent = titulo;
+                const detalle = document.createElement('span');
+                detalle.className = 'combo-option-meta';
+                detalle.innerHTML = detalleHtml;
+                opcion.append(textoTitulo, detalle);
+
+                // mousedown (no click) para elegir antes de que el campo pierda el foco
+                opcion.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    elegir(elemento);
+                });
+                lista.appendChild(opcion);
+            });
+            lista.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            indice = -1;
+        }
+
+        input.addEventListener('input', () => {
+            mostrar();
+            if (alEscribir) alEscribir();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (lista.hidden) return;
+            if (e.key === 'ArrowDown') {
+                marcar((indice + 1) % actuales.length);
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                marcar(indice <= 0 ? actuales.length - 1 : indice - 1);
+                e.preventDefault();
+            } else if (e.key === 'Enter' && indice >= 0) {
+                elegir(actuales[indice]);
+                e.preventDefault();
+            } else if (e.key === 'Escape') {
+                cerrar();
+                e.preventDefault();
+            }
+        });
+
+        input.addEventListener('blur', cerrar);
+
+        return {
+            cerrar,
+            haySugerencias: () => actuales.length > 0
+        };
+    }
+
+    // =========================================================================
+    // ASIGNATURA: SUGERENCIAS POR NOMBRE O CÓDIGO Y DETECCIÓN DE DUPLICADOS
+    // =========================================================================
+    const inputNombreCurso = document.getElementById('curso-nombre');
+    const inputCodigoCurso = document.getElementById('curso-codigo');
+    const avisoDuplicado = document.getElementById('curso-duplicado');
+    const textoDuplicado = document.getElementById('curso-duplicado-texto');
+    const btnAbrirDuplicado = document.getElementById('curso-duplicado-abrir');
+    let cursoDuplicado = null;
+
+    function describirAsignatura(asignatura) {
+        const yaInscrito = buscarCursoDuplicado({ codigo: asignatura.codigo }, document.getElementById('curso-id').value);
+        return {
+            titulo: `${asignatura.codigo} · ${asignatura.nombre}`,
+            detalleHtml: `${asignatura.creditos} créditos${yaInscrito ? ' · <strong>Ya está en tus cursos</strong>' : ''}`
+        };
+    }
+
+    function elegirAsignatura(asignatura) {
+        inputCodigoCurso.value = asignatura.codigo;
+        inputNombreCurso.value = asignatura.nombre;
+        document.getElementById('curso-creditos').value = asignatura.creditos;
+        revisarDuplicado();
+    }
+
+    // Muestra el aviso si el curso ya existe entre tus asignaturas
+    function revisarDuplicado() {
+        const idEdicion = document.getElementById('curso-id').value;
+        const resultado = buscarCursoDuplicado({ codigo: inputCodigoCurso.value, nombre: inputNombreCurso.value }, idEdicion);
+        cursoDuplicado = resultado ? resultado.curso : null;
+        if (!resultado) {
+            avisoDuplicado.hidden = true;
+            avisoDuplicado.classList.remove('bloqueante');
+            return null;
+        }
+        const c = resultado.curso;
+        textoDuplicado.textContent = resultado.tipo === 'codigo'
+            ? `Ya tienes un curso con el código ${c.codigo}: "${c.nombre}". No se puede registrar dos veces.`
+            : `Ya tienes "${c.nombre}"${c.codigo ? ` con el código ${c.codigo}` : ''}. Si es el mismo curso, ábrelo en lugar de crear otro.`;
+        avisoDuplicado.classList.toggle('bloqueante', resultado.tipo === 'codigo');
+        avisoDuplicado.hidden = false;
+        return resultado;
+    }
+
+    const sugerenciasNombreCurso = crearCampoConSugerencias({
+        input: inputNombreCurso,
+        lista: document.getElementById('curso-nombre-sugerencias'),
+        prefijoId: 'sugerencia-nombre',
+        buscar: texto => normalizarTexto(texto).length >= 2 ? buscarAsignaturas(texto) : [],
+        describir: describirAsignatura,
+        alElegir: elegirAsignatura,
+        alEscribir: revisarDuplicado
+    });
+
+    const sugerenciasCodigoCurso = crearCampoConSugerencias({
+        input: inputCodigoCurso,
+        lista: document.getElementById('curso-codigo-sugerencias'),
+        prefijoId: 'sugerencia-codigo',
+        buscar: texto => normalizarCodigo(texto) ? buscarAsignaturas(texto) : [],
+        describir: describirAsignatura,
+        alElegir: elegirAsignatura,
+        alEscribir: revisarDuplicado
+    });
+
+    btnAbrirDuplicado.addEventListener('click', () => {
+        if (!cursoDuplicado) return;
+        establecerCursoActivoId(cursoDuplicado.id);
+        window.location.href = `simulador.html?id=${encodeURIComponent(cursoDuplicado.id)}`;
+    });
+
+    function prepararCamposAsignatura() {
+        sugerenciasNombreCurso.cerrar();
+        sugerenciasCodigoCurso.cerrar();
+        cursoDuplicado = null;
+        avisoDuplicado.hidden = true;
+        avisoDuplicado.classList.remove('bloqueante');
+    }
+
+    // =========================================================================
+    // DOCENTE: SUGERENCIAS DEL CATÁLOGO DE DOCENTES
     // =========================================================================
     const inputProfesor = document.getElementById('curso-profesor');
-    const listaSugerencias = document.getElementById('curso-profesor-sugerencias');
     const inputDocenteId = document.getElementById('curso-docente-id');
     const estadoProfesor = document.getElementById('curso-profesor-estado');
-    let sugerenciasActuales = [];
-    let indiceActivo = -1;
 
     function textoCursosDocente(docente) {
         const n = contarCursosDeDocente(docente.id);
         return n === 1 ? '1 curso' : `${n} cursos`;
     }
+
+    const sugerenciasDocente = crearCampoConSugerencias({
+        input: inputProfesor,
+        lista: document.getElementById('curso-profesor-sugerencias'),
+        prefijoId: 'sugerencia-docente',
+        buscar: buscarDocentes,
+        describir: docente => ({
+            titulo: docente.nombre,
+            detalleHtml: `${docente.calificacion > 0 ? htmlEstrellas(docente.calificacion) + ' · ' : ''}${textoCursosDocente(docente)}`
+        }),
+        alElegir: docente => {
+            inputProfesor.value = docente.nombre;
+            inputDocenteId.value = docente.id;
+            establecerCalificacionFormulario(docente.calificacion);
+            actualizarEstadoProfesor();
+        },
+        alEscribir: () => {
+            // Si lo escrito es exactamente un docente registrado, se vincula solo
+            const coincidencia = buscarDocentePorNombre(inputProfesor.value);
+            inputDocenteId.value = coincidencia ? coincidencia.id : '';
+            if (coincidencia) establecerCalificacionFormulario(coincidencia.calificacion);
+            actualizarEstadoProfesor();
+        }
+    });
 
     // Mensaje bajo el campo: docente ya registrado o nuevo
     function actualizarEstadoProfesor() {
@@ -268,102 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
             estadoProfesor.textContent = '';
         } else if (docente) {
             estadoProfesor.textContent = `✓ Docente registrado · ${textoCursosDocente(docente)}`;
-        } else if (sugerenciasActuales.length > 0) {
+        } else if (sugerenciasDocente.haySugerencias()) {
             estadoProfesor.textContent = 'Elige un docente de la lista o sigue escribiendo para registrar uno nuevo.';
         } else {
             estadoProfesor.textContent = 'Se registrará como nuevo docente.';
         }
-    }
-
-    function cerrarSugerencias() {
-        listaSugerencias.hidden = true;
-        listaSugerencias.innerHTML = '';
-        inputProfesor.setAttribute('aria-expanded', 'false');
-        inputProfesor.removeAttribute('aria-activedescendant');
-        sugerenciasActuales = [];
-        indiceActivo = -1;
-    }
-
-    function seleccionarDocente(docente) {
-        inputProfesor.value = docente.nombre;
-        inputDocenteId.value = docente.id;
-        establecerCalificacionFormulario(docente.calificacion);
-        cerrarSugerencias();
-        actualizarEstadoProfesor();
-    }
-
-    function marcarSugerenciaActiva(indice) {
-        indiceActivo = indice;
-        listaSugerencias.querySelectorAll('.combo-option').forEach((opcion, i) => {
-            const activa = i === indice;
-            opcion.classList.toggle('activa', activa);
-            opcion.setAttribute('aria-selected', String(activa));
-            if (activa) inputProfesor.setAttribute('aria-activedescendant', opcion.id);
-        });
-    }
-
-    function mostrarSugerencias() {
-        sugerenciasActuales = buscarDocentes(inputProfesor.value);
-        listaSugerencias.innerHTML = '';
-        if (sugerenciasActuales.length === 0) {
-            cerrarSugerencias();
-            return;
-        }
-        sugerenciasActuales.forEach((docente, i) => {
-            const opcion = document.createElement('li');
-            opcion.className = 'combo-option';
-            opcion.id = `sugerencia-docente-${i}`;
-            opcion.setAttribute('role', 'option');
-            opcion.setAttribute('aria-selected', 'false');
-
-            const nombreDocente = document.createElement('span');
-            nombreDocente.className = 'combo-option-name';
-            nombreDocente.textContent = docente.nombre;
-            const detalle = document.createElement('span');
-            detalle.className = 'combo-option-meta';
-            detalle.innerHTML = `${docente.calificacion > 0 ? htmlEstrellas(docente.calificacion) + ' · ' : ''}${textoCursosDocente(docente)}`;
-            opcion.append(nombreDocente, detalle);
-
-            // mousedown (no click) para elegir antes de que el campo pierda el foco
-            opcion.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                seleccionarDocente(docente);
-            });
-            listaSugerencias.appendChild(opcion);
-        });
-        listaSugerencias.hidden = false;
-        inputProfesor.setAttribute('aria-expanded', 'true');
-        indiceActivo = -1;
-    }
-
-    if (inputProfesor && listaSugerencias) {
-        inputProfesor.addEventListener('input', () => {
-            // Si lo escrito es exactamente un docente registrado, se vincula solo
-            const coincidencia = buscarDocentePorNombre(inputProfesor.value);
-            inputDocenteId.value = coincidencia ? coincidencia.id : '';
-            if (coincidencia) establecerCalificacionFormulario(coincidencia.calificacion);
-            mostrarSugerencias();
-            actualizarEstadoProfesor();
-        });
-
-        inputProfesor.addEventListener('keydown', (e) => {
-            if (listaSugerencias.hidden) return;
-            if (e.key === 'ArrowDown') {
-                marcarSugerenciaActiva((indiceActivo + 1) % sugerenciasActuales.length);
-                e.preventDefault();
-            } else if (e.key === 'ArrowUp') {
-                marcarSugerenciaActiva(indiceActivo <= 0 ? sugerenciasActuales.length - 1 : indiceActivo - 1);
-                e.preventDefault();
-            } else if (e.key === 'Enter' && indiceActivo >= 0) {
-                seleccionarDocente(sugerenciasActuales[indiceActivo]);
-                e.preventDefault();
-            } else if (e.key === 'Escape') {
-                cerrarSugerencias();
-                e.preventDefault();
-            }
-        });
-
-        inputProfesor.addEventListener('blur', cerrarSugerencias);
     }
 
     // Prepara el campo docente al abrir el modal (vacío o con el docente del curso)
@@ -372,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inputProfesor.value = docente ? docente.nombre : '';
         inputDocenteId.value = docente && docente.id ? docente.id : '';
         establecerCalificacionFormulario(docente ? docente.calificacion : 0);
-        cerrarSugerencias();
+        sugerenciasDocente.cerrar();
         actualizarEstadoProfesor();
     }
 
@@ -425,7 +539,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const nombre = document.getElementById('curso-nombre').value.trim();
             const codigo = document.getElementById('curso-codigo').value.trim();
             const creditos = parseInt(document.getElementById('curso-creditos').value) || 3;
+            const duplicado = revisarDuplicado();
+            if (duplicado && duplicado.tipo === 'codigo') {
+                inputCodigoCurso.focus();
+                return;
+            }
+            if (duplicado && duplicado.tipo === 'nombre' &&
+                !confirm(`Ya tienes "${duplicado.curso.nombre}". ¿Seguro que es un curso distinto y quieres registrarlo?`)) {
+                return;
+            }
+
             const { docenteId, profesor } = resolverDocenteFormulario();
+            // El catálogo de la universidad identifica al curso por su código
+            const asignatura = registrarAsignatura({ codigo, nombre, creditos });
+            const asignaturaId = asignatura ? asignatura.id : '';
+            // Mismo formato de código que el catálogo (por ejemplo "qui-101" se guarda como "QUI-101")
+            const codigoFinal = asignatura ? asignatura.codigo : codigo;
             const metaRaw = document.getElementById('curso-meta').value.trim();
             // Meta vacía = sigue la nota aprobatoria de la universidad
             const meta = metaRaw === '' ? '' : parsearNotaMeta(metaRaw);
@@ -439,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualizarDashboard();
                     return;
                 }
-                Object.assign(existente, { nombre, codigo, creditos, notaMeta: meta, docenteId, profesor });
+                Object.assign(existente, { nombre, codigo: codigoFinal, creditos, notaMeta: meta, asignaturaId, docenteId, profesor });
                 // La calificación ahora vive en el catálogo de docentes
                 delete existente.calificacionProfesor;
                 guardarCurso(existente);
@@ -459,8 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nuevoCurso = {
                 nombre,
-                codigo,
+                codigo: codigoFinal,
                 creditos,
+                asignaturaId,
                 docenteId,
                 profesor,
                 comentarios: [],
@@ -572,10 +702,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const datos = JSON.parse(lector.result);
                 const cursos = validarRespaldo(datos);
                 const docentesRespaldo = datos && Array.isArray(datos.docentes) ? datos.docentes : null;
+                const asignaturasRespaldo = datos && Array.isArray(datos.asignaturas) ? datos.asignaturas : null;
                 const mensaje = `El respaldo contiene ${cursos.length} asignatura(s). ` +
                     `Se reemplazarán las ${cursosActuales.length} asignatura(s) actuales. ¿Deseas continuar?`;
                 if (confirm(mensaje)) {
-                    restaurarCursos(cursos, docentesRespaldo);
+                    restaurarCursos(cursos, docentesRespaldo, asignaturasRespaldo);
                     // Los respaldos nuevos también traen el perfil (universidad y estudiante)
                     if (datos && datos.perfil) {
                         guardarPerfil(datos.perfil);

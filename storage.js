@@ -544,16 +544,26 @@ const TITULOS_DOCENTE = new Set([
 ]);
 
 /**
- * Normaliza un nombre para compararlo: sin tildes, en minúsculas, sin signos ni títulos.
+ * Normaliza un texto para compararlo: sin tildes, en minúsculas y sin signos.
  */
-function normalizarNombreDocente(nombre) {
-    return String(nombre || '')
+function normalizarTexto(texto) {
+    return String(texto || '')
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '')
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')
         .split(/\s+/)
-        .filter(palabra => palabra && !TITULOS_DOCENTE.has(palabra))
+        .filter(Boolean)
+        .join(' ');
+}
+
+/**
+ * Normaliza el nombre de un docente: como normalizarTexto y además sin títulos.
+ */
+function normalizarNombreDocente(nombre) {
+    return normalizarTexto(nombre)
+        .split(' ')
+        .filter(palabra => !TITULOS_DOCENTE.has(palabra))
         .join(' ');
 }
 
@@ -717,6 +727,164 @@ function validarDocentes(lista) {
 }
 
 // ==========================================================================
+// CATÁLOGO DE ASIGNATURAS (clave: universidad + código)
+// Evita registrar dos veces el mismo curso y permite sugerirlo al escribir.
+// ==========================================================================
+const ASIGNATURAS_KEY = 'unsa_simulador_asignaturas_v1';
+
+/**
+ * Normaliza un código para compararlo: "mat-201", "MAT 201" y "MAT201" son iguales.
+ */
+function normalizarCodigo(codigo) {
+    return String(codigo || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+}
+
+function obtenerAsignaturas() {
+    try {
+        const lista = JSON.parse(localStorage.getItem(ASIGNATURAS_KEY));
+        return Array.isArray(lista) ? lista : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function guardarAsignaturas(lista) {
+    try {
+        localStorage.setItem(ASIGNATURAS_KEY, JSON.stringify(lista));
+    } catch (e) {
+        console.error("Error al guardar asignaturas en localStorage:", e);
+    }
+}
+
+function asignaturasDeUniversidad(universidadId = obtenerPerfil().universidadId) {
+    return obtenerAsignaturas().filter(a => a.universidadId === universidadId);
+}
+
+function buscarAsignaturaPorCodigo(codigo, universidadId = obtenerPerfil().universidadId) {
+    const normalizado = normalizarCodigo(codigo);
+    if (!normalizado) return null;
+    return asignaturasDeUniversidad(universidadId).find(a => a.codigoNormalizado === normalizado) || null;
+}
+
+/**
+ * Sugerencias por código (prefijo) o por nombre (cada palabra escrita inicia una palabra del nombre).
+ */
+function buscarAsignaturas(texto, limite = 6) {
+    const codigo = normalizarCodigo(texto);
+    const palabras = normalizarTexto(texto).split(' ').filter(Boolean);
+    if (!codigo && palabras.length === 0) return [];
+    const porCodigo = a => codigo && a.codigoNormalizado.startsWith(codigo);
+    const porNombre = a => {
+        const delNombre = a.nombreNormalizado.split(' ');
+        return palabras.length > 0 && palabras.every(q => delNombre.some(p => p.startsWith(q)));
+    };
+    return asignaturasDeUniversidad()
+        .filter(a => porCodigo(a) || porNombre(a))
+        .sort((a, b) => (porCodigo(a) ? 0 : 1) - (porCodigo(b) ? 0 : 1) || a.codigo.localeCompare(b.codigo, 'es'))
+        .slice(0, limite);
+}
+
+/**
+ * Registra la asignatura en el catálogo de la universidad actual o actualiza su nombre y créditos.
+ * Solo se catalogan cursos con código, que es lo que los identifica.
+ */
+function registrarAsignatura({ codigo, nombre, creditos }) {
+    const codigoNormalizado = normalizarCodigo(codigo);
+    const nombreLimpio = String(nombre || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+    if (!codigoNormalizado || !nombreLimpio) return null;
+
+    const universidadId = obtenerPerfil().universidadId;
+    const lista = obtenerAsignaturas();
+    let asignatura = lista.find(a => a.universidadId === universidadId && a.codigoNormalizado === codigoNormalizado);
+    if (asignatura) {
+        asignatura.codigo = String(codigo).trim().toUpperCase();
+        asignatura.nombre = nombreLimpio;
+        asignatura.nombreNormalizado = normalizarTexto(nombreLimpio);
+        asignatura.creditos = parseInt(creditos) || asignatura.creditos || 3;
+    } else {
+        asignatura = {
+            id: `asig_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            universidadId,
+            codigo: String(codigo).trim().toUpperCase(),
+            codigoNormalizado,
+            nombre: nombreLimpio,
+            nombreNormalizado: normalizarTexto(nombreLimpio),
+            creditos: parseInt(creditos) || 3,
+            fechaRegistro: new Date().toISOString()
+        };
+        lista.push(asignatura);
+    }
+    guardarAsignaturas(lista);
+    return asignatura;
+}
+
+/**
+ * Busca entre tus cursos uno que sea el mismo: primero por código (duplicado seguro)
+ * y luego por nombre (posible duplicado con otro código).
+ */
+function buscarCursoDuplicado({ codigo, nombre }, idExcluir = null) {
+    const otros = obtenerCursos().filter(c => c.id !== idExcluir);
+    const codigoNormalizado = normalizarCodigo(codigo);
+    if (codigoNormalizado) {
+        const mismoCodigo = otros.find(c => normalizarCodigo(c.codigo) === codigoNormalizado);
+        if (mismoCodigo) return { tipo: 'codigo', curso: mismoCodigo };
+    }
+    const nombreNormalizado = normalizarTexto(nombre);
+    if (nombreNormalizado) {
+        const mismoNombre = otros.find(c => normalizarTexto(c.nombre) === nombreNormalizado);
+        if (mismoNombre) return { tipo: 'nombre', curso: mismoNombre };
+    }
+    return null;
+}
+
+/**
+ * Agrega al catálogo los cursos con código que aún no están vinculados (idempotente).
+ */
+function migrarAsignaturas() {
+    const cursos = obtenerCursos();
+    const idsExistentes = new Set(obtenerAsignaturas().map(a => a.id));
+    let cambios = false;
+    cursos.forEach(curso => {
+        if (!normalizarCodigo(curso.codigo) || (curso.asignaturaId && idsExistentes.has(curso.asignaturaId))) return;
+        const asignatura = registrarAsignatura(curso);
+        if (!asignatura) return;
+        curso.asignaturaId = asignatura.id;
+        cambios = true;
+    });
+    if (cambios) guardarTodosLosCursos(cursos);
+}
+
+/**
+ * Valida el catálogo de asignaturas de un respaldo (descarta entradas inválidas o repetidas).
+ */
+function validarAsignaturas(lista) {
+    if (!Array.isArray(lista)) return [];
+    const ids = new Set();
+    const claves = new Set();
+    return lista.filter(a => {
+        if (!a || typeof a.id !== 'string' || !a.id || typeof a.nombre !== 'string' || !UNIVERSIDADES[a.universidadId]) return false;
+        const clave = `${a.universidadId}|${normalizarCodigo(a.codigo)}`;
+        if (!normalizarCodigo(a.codigo) || ids.has(a.id) || claves.has(clave)) return false;
+        ids.add(a.id);
+        claves.add(clave);
+        return true;
+    }).map(a => ({
+        id: a.id,
+        universidadId: a.universidadId,
+        codigo: String(a.codigo).trim().toUpperCase(),
+        codigoNormalizado: normalizarCodigo(a.codigo),
+        nombre: a.nombre.trim().slice(0, 120),
+        nombreNormalizado: normalizarTexto(a.nombre),
+        creditos: parseInt(a.creditos) || 3,
+        fechaRegistro: typeof a.fechaRegistro === 'string' ? a.fechaRegistro : new Date().toISOString()
+    }));
+}
+
+// ==========================================================================
 // RESPALDO DE DATOS (EXPORTAR / RESTAURAR JSON)
 // ==========================================================================
 const RESPALDO_APP = 'unsa-simulador-notas';
@@ -732,6 +900,7 @@ function crearRespaldo() {
         fechaExportacion: new Date().toISOString(),
         perfil: obtenerPerfil(),
         docentes: obtenerDocentes(),
+        asignaturas: obtenerAsignaturas(),
         cursos: obtenerCursos()
     };
 }
@@ -778,6 +947,7 @@ function validarRespaldo(datos) {
             creditos: parseInt(c.creditos) || 3,
             // Meta vacía = sigue la nota aprobatoria de la universidad
             notaMeta: c.notaMeta === '' || c.notaMeta === null || c.notaMeta === undefined ? '' : parsearNotaMeta(c.notaMeta),
+            asignaturaId: typeof c.asignaturaId === 'string' ? c.asignaturaId : '',
             docenteId: typeof c.docenteId === 'string' ? c.docenteId : '',
             profesor: typeof c.profesor === 'string' ? c.profesor.trim().slice(0, 80) : '',
             calificacionProfesor: normalizarCalificacion(c.calificacionProfesor),
@@ -800,12 +970,14 @@ function validarRespaldo(datos) {
 /**
  * Reemplaza todas las asignaturas guardadas por las de un respaldo ya validado.
  */
-function restaurarCursos(cursos, docentes) {
+function restaurarCursos(cursos, docentes, asignaturas) {
     if (docentes) guardarDocentes(validarDocentes(docentes));
+    if (asignaturas) guardarAsignaturas(validarAsignaturas(asignaturas));
     guardarTodosLosCursos(cursos);
     localStorage.removeItem(ACTIVE_COURSE_KEY);
-    // Cursos con docentes que no vinieron en el catálogo del respaldo
+    // Cursos con docentes o asignaturas que no vinieron en los catálogos del respaldo
     migrarDocentes();
+    migrarAsignaturas();
 }
 
 // ==========================================================================
@@ -889,5 +1061,6 @@ function actualizarBotonesTema(tema) {
     }
     aplicarColoresUniversidad();
     migrarDocentes();
+    migrarAsignaturas();
 })();
 

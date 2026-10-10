@@ -222,18 +222,34 @@
 
                     <div class="form-group">
                         <label for="curso-nombre">Nombre de la Asignatura *</label>
-                        <input type="text" id="curso-nombre" placeholder="Ej: Cálculo en Varias Variables" required>
+                        <div class="combo">
+                            <input type="text" id="curso-nombre" placeholder="Ej: Cálculo en Varias Variables" required
+                                   autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                   aria-controls="curso-nombre-sugerencias">
+                            <ul class="combo-list" id="curso-nombre-sugerencias" role="listbox" hidden></ul>
+                        </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label for="curso-codigo">Código / Sigla</label>
-                            <input type="text" id="curso-codigo" placeholder="Ej: MAT-201">
+                            <div class="combo">
+                                <input type="text" id="curso-codigo" placeholder="Ej: MAT-201" maxlength="20"
+                                       autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                       aria-controls="curso-codigo-sugerencias">
+                                <ul class="combo-list" id="curso-codigo-sugerencias" role="listbox" hidden></ul>
+                            </div>
+                            <small class="form-hint">Recomendado: evita registrar el mismo curso dos veces.</small>
                         </div>
                         <div class="form-group">
                             <label for="curso-creditos">Créditos</label>
                             <input type="number" id="curso-creditos" min="1" max="10" value="4">
                         </div>
+                    </div>
+
+                    <div class="form-alert" id="curso-duplicado" role="alert" hidden>
+                        <span id="curso-duplicado-texto"></span>
+                        <button type="button" class="form-alert-action" id="curso-duplicado-abrir">Abrir ese curso</button>
                     </div>
 
                     <div class="form-row">

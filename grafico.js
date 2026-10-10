@@ -225,5 +225,5 @@ function renderizarGraficoEscenarios(contenedor, resumen) {
  * SVG estático con colores de impresión para el reporte PDF.
  */
 function svgEscenariosImpresion(resumen) {
-    return construirSvgEscenarios(resumen, 640, 250, PALETAS_GRAFICO.impresion);
+    return construirSvgEscenarios(resumen, 640, 215, PALETAS_GRAFICO.impresion);
 }

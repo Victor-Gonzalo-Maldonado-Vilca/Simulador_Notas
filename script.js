@@ -515,29 +515,32 @@ function generarReportePDF() {
     const docSheet = document.getElementById('documento-reporte-pdf');
     if (!docSheet) return;
 
-    // Metadatos
+    // Metadatos y datos del estudiante
     const ahora = new Date();
-    const formatoFecha = ahora.toLocaleDateString('es-PE', {
-        year: 'numeric',
-        month: 'long',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const perfil = obtenerPerfil();
+    const univ = obtenerUniversidad(perfil);
+    aplicarColoresUniversidad(univ);
+    const fecha = formatearFechaReporte(ahora);
 
-    document.getElementById('rep-fecha-emision').textContent = formatoFecha;
-    const univ = obtenerUniversidad();
+    document.getElementById('rep-fecha-emision').textContent = fecha;
+    document.getElementById('rep-generado-fecha').textContent = fecha;
     document.getElementById('rep-univ-nombre').textContent = univ.nombre.toUpperCase();
-    document.getElementById('rep-codigo-doc').textContent = `SIM-${univ.siglas}-${Date.now().toString().slice(-6)}`;
+    document.getElementById('rep-codigo-doc').textContent = `SIM-${univ.siglas}-${ahora.getTime().toString().slice(-6)}`;
+    document.getElementById('rep-estudiante').textContent = perfil.estudiante || 'No registrado';
+    document.getElementById('rep-firma-nombre').textContent = perfil.estudiante;
+    document.getElementById('rep-nota-aprobatoria').textContent = univ.notaAprobatoria.toFixed(2);
+    document.getElementById('rep-nota-aprobatoria-fuente').textContent = `(fijada por ${univ.siglas})`;
+
+    // Datos del curso
     document.getElementById('rep-curso-nombre').textContent = cursoActual.nombre;
     document.getElementById('rep-curso-codigo').textContent = cursoActual.codigo || 'S/C';
-    document.getElementById('rep-curso-profesor').textContent = cursoActual.profesor || 'No registrado';
-    const calificacionDocente = normalizarCalificacion(cursoActual.calificacionProfesor);
-    document.getElementById('rep-curso-profesor-estrellas').innerHTML = calificacionDocente > 0
-        ? `${htmlEstrellas(calificacionDocente)} (${calificacionDocente}/${MAX_ESTRELLAS})`
-        : 'Sin calificar';
     document.getElementById('rep-curso-creditos').textContent = cursoActual.creditos || 3;
     document.getElementById('rep-curso-meta').textContent = Math.max(parsearNotaMeta(notaMetaInput.value), univ.notaAprobatoria).toFixed(2);
+    const calificacionDocente = normalizarCalificacion(cursoActual.calificacionProfesor);
+    document.getElementById('rep-curso-profesor').textContent = cursoActual.profesor || (calificacionDocente > 0 ? 'Sin nombre' : 'No registrado');
+    document.getElementById('rep-curso-profesor-estrellas').innerHTML = calificacionDocente > 0
+        ? `${htmlEstrellas(calificacionDocente)} <span class="rep-muted">(${calificacionDocente}/${MAX_ESTRELLAS})</span>`
+        : '';
 
     // Llenar tabla de evaluaciones
     const tablaCuerpo = document.getElementById('rep-tabla-cuerpo');
@@ -547,44 +550,36 @@ function generarReportePDF() {
     let totalPuntos = 0;
 
     // Suma de pesos para normalizar aportes (igual que en el simulador)
-    const { sumaPesos: sumaPesosNormalizacion } = calcularResumenCurso(leerDatosFormulario());
+    const resumen = calcularResumenCurso(leerDatosFormulario());
+    const sumaPesosNormalizacion = resumen.sumaPesos;
 
     const fases = [
-        { nombre: 'Fase I • Unidad 01', evals: [EVALUACIONES[0], EVALUACIONES[1]] },
-        { nombre: 'Fase II • Unidad 02', evals: [EVALUACIONES[2], EVALUACIONES[3]] },
-        { nombre: 'Fase III • Unidad 03', evals: [EVALUACIONES[4], EVALUACIONES[5]] }
+        { nombre: 'Fase I', unidad: 'Unidad 01', evals: [EVALUACIONES[0], EVALUACIONES[1]] },
+        { nombre: 'Fase II', unidad: 'Unidad 02', evals: [EVALUACIONES[2], EVALUACIONES[3]] },
+        { nombre: 'Fase III', unidad: 'Unidad 03', evals: [EVALUACIONES[4], EVALUACIONES[5]] }
     ];
 
     fases.forEach((fase) => {
-        let subtotalPuntosFase = 0;
-        let subtotalPesosFase = 0;
-
         fase.evals.forEach((ev, idx) => {
             const notaVal = document.getElementById(ev.notaId).value.trim();
             const pesoVal = parseFloat(document.getElementById(ev.pesoId).value) || 0;
-
             totalPesos += pesoVal;
-            subtotalPesosFase += pesoVal;
 
             const tr = document.createElement('tr');
+            const tdFase = idx === 0
+                ? `<td rowspan="2" class="rep-td-fase"><strong>${fase.nombre}</strong><br><span class="rep-muted">${fase.unidad}</span></td>`
+                : '';
 
-            let tdFase = '';
-            if (idx === 0) {
-                tdFase = `<td rowspan="2" class="rep-td-fase"><strong>${fase.nombre}</strong></td>`;
-            }
-
-            let califTexto = '--';
-            let aporteTexto = '--';
-
+            let califTexto;
+            let aporteTexto;
             if (notaVal !== '') {
                 const n = parseFloat(notaVal);
                 const aporte = sumaPesosNormalizacion > 0 ? (n * pesoVal) / sumaPesosNormalizacion : 0;
                 califTexto = n.toFixed(2);
                 aporteTexto = `+${aporte.toFixed(2)} pts`;
-                subtotalPuntosFase += aporte;
                 totalPuntos += aporte;
             } else {
-                califTexto = '<span class="rep-tag-pendiente">[ Pendiente ]</span>';
+                califTexto = '<span class="rep-tag-pendiente">Pendiente</span>';
                 aporteTexto = '<span class="rep-tag-pendiente">Por evaluar</span>';
             }
 
@@ -595,7 +590,6 @@ function generarReportePDF() {
                 <td style="text-align: center; font-weight: 700;">${califTexto}</td>
                 <td style="text-align: right; font-weight: 700;">${aporteTexto}</td>
             `;
-
             tablaCuerpo.appendChild(tr);
         });
     });
@@ -603,15 +597,31 @@ function generarReportePDF() {
     document.getElementById('rep-total-pesos-td').innerHTML = `<strong>${totalPesos.toFixed(1)}%</strong>`;
     document.getElementById('rep-total-aporte-td').innerHTML = `<strong>${totalPuntos.toFixed(2)} / 20.00 pts</strong>`;
 
-    // Diagnóstico
-    document.getElementById('rep-diag-condicion').textContent = estadoElement.textContent || 'En proceso';
-    document.getElementById('rep-diag-condicion').className = `rep-diag-badge ${estadoElement.className.replace('result-status-pill', '')}`;
+    // Diagnóstico (mismo texto y estado que la tarjeta de resultado)
+    const condicion = document.getElementById('rep-diag-condicion');
+    condicion.textContent = estadoElement.textContent || 'En proceso';
+    condicion.className = `rep-diag-badge ${estadoElement.className.replace('result-status-pill', '').trim()}`;
+    document.getElementById('rep-diag-nota-req-lbl').textContent = `${resultadoTipoEtiqueta.textContent}:`;
     document.getElementById('rep-diag-nota-req').textContent = `${resultadoElement.textContent} / 20`;
     document.getElementById('rep-diag-mensaje').innerHTML = resultadoMensaje.innerHTML;
 
     document.getElementById('rep-scen-acumulado').textContent = metricAcumulado.textContent || totalPuntos.toFixed(2);
+    document.getElementById('rep-scen-parcial').textContent = metricParcial.textContent || '--';
     document.getElementById('rep-scen-minimo').textContent = metricMinimo.textContent || '--';
     document.getElementById('rep-scen-maximo').textContent = metricMaximo.textContent || '--';
+
+    // Gráfico de escenarios: solo mientras queden evaluaciones pendientes
+    const seccionGrafico = document.getElementById('rep-seccion-grafico');
+    if (resumenGrafico) {
+        document.getElementById('rep-grafico').innerHTML = svgEscenariosImpresion(resumenGrafico);
+        document.getElementById('rep-grafico-leyenda').textContent =
+            'Nota final según el promedio que se obtenga en las evaluaciones pendientes. Línea gris: nota aprobatoria' +
+            (resumenGrafico.notaMeta > resumenGrafico.notaAprobatoria ? '; línea naranja: meta personal.' : '.');
+        seccionGrafico.style.display = '';
+    } else {
+        document.getElementById('rep-grafico').innerHTML = '';
+        seccionGrafico.style.display = 'none';
+    }
 
     // Lanzar diálogo nativo de impresión / Guardar como PDF
     window.print();
@@ -627,7 +637,6 @@ if (btnThemeToggle) {
     btnThemeToggle.addEventListener('click', alternarTema);
 }
 
-// Inicializar al cargar el documento
 // Muestra la nota aprobatoria de la universidad (no editable) junto a la meta personal
 function configurarUniversidadEnSimulador() {
     const univ = obtenerUniversidad();
@@ -640,6 +649,7 @@ function configurarUniversidadEnSimulador() {
     mostrarSiglasUniversidad(univ);
 }
 
+// Inicializar al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
     configurarUniversidadEnSimulador();
     inicializarCurso();

@@ -349,37 +349,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const ahora = new Date();
-        const formatoFecha = ahora.toLocaleDateString('es-PE', {
-            year: 'numeric',
-            month: 'long',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
+        const fecha = formatearFechaReporte(ahora);
+        const perfil = obtenerPerfil();
+        const univ = obtenerUniversidad(perfil);
+        aplicarColoresUniversidad(univ);
         const metricas = calcularMetricasGlobales(cursos);
+        const enCurso = metricas.totalCursos - metricas.cursosAprobados - metricas.cursosEnRiesgo;
 
-        document.getElementById('rep-sem-fecha').textContent = formatoFecha;
-        const univ = obtenerUniversidad();
+        document.getElementById('rep-sem-fecha').textContent = fecha;
+        document.getElementById('rep-sem-generado-fecha').textContent = fecha;
         document.getElementById('rep-sem-univ-nombre').textContent = univ.nombre.toUpperCase();
-        document.getElementById('rep-sem-codigo').textContent = `CONSOLIDADO-${univ.siglas}-${Date.now().toString().slice(-6)}`;
+        document.getElementById('rep-sem-codigo').textContent = `CONS-${univ.siglas}-${ahora.getTime().toString().slice(-6)}`;
+        document.getElementById('rep-sem-estudiante').textContent = perfil.estudiante || 'No registrado';
+        document.getElementById('rep-sem-firma-nombre').textContent = perfil.estudiante;
+        document.getElementById('rep-sem-nota-aprobatoria').textContent = univ.notaAprobatoria.toFixed(2);
+        document.getElementById('rep-sem-nota-fuente').textContent = `(fijada por ${univ.siglas})`;
         document.getElementById('rep-sem-total-cursos').textContent = metricas.totalCursos;
         document.getElementById('rep-sem-total-creditos').textContent = metricas.creditosTotales;
         document.getElementById('rep-sem-promedio-global').textContent = `${metricas.promedioPonderado} / 20.00`;
-        document.getElementById('rep-sem-resumen-estados').textContent = `${metricas.cursosAprobados} aseguradas • ${metricas.cursosEnRiesgo} en seguimiento`;
+        document.getElementById('rep-sem-resumen-estados').textContent =
+            `${metricas.cursosAprobados} con meta asegurada • ${metricas.cursosEnRiesgo} en seguimiento • ${enCurso} en curso`;
 
         const tablaCuerpo = document.getElementById('rep-sem-tabla-cuerpo');
         tablaCuerpo.innerHTML = '';
 
         cursos.forEach(c => {
             const res = calcularResumenCurso(c);
+            const calificacion = normalizarCalificacion(c.calificacionProfesor);
+            const docente = c.profesor
+                ? `${escaparHtml(c.profesor)}${calificacion > 0 ? `<br>${htmlEstrellas(calificacion)}` : ''}`
+                : (calificacion > 0 ? htmlEstrellas(calificacion) : '<span class="rep-muted">—</span>');
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${escaparHtml(c.codigo || 'S/C')}</strong></td>
                 <td><strong>${escaparHtml(c.nombre)}</strong></td>
+                <td class="rep-td-docente">${docente}</td>
                 <td style="text-align: center;">${escaparHtml(c.creditos || 3)}</td>
                 <td style="text-align: center;">${res.pctEvaluado}% (${res.notasLlenadas}/6)</td>
                 <td style="text-align: center; font-weight: 700;">${res.promedioActual.toFixed(2)}</td>
+                <td style="text-align: center;">${res.promedioParcial !== null ? res.promedioParcial.toFixed(2) : '—'}</td>
                 <td style="text-align: right;"><span class="rep-diag-badge ${res.badgeClass}">${res.badgeTexto}</span></td>
             `;
             tablaCuerpo.appendChild(tr);

@@ -1822,7 +1822,8 @@ input[type="number"],
   }
 
   .rep-inst-name {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.25;
     font-weight: 800;
     color: var(--univ-secundario, #0f2742) !important;
     letter-spacing: 0.02em;
@@ -1830,15 +1831,16 @@ input[type="number"],
   }
 
   .rep-inst-sub {
-    font-size: 0.725rem;
+    font-size: 0.675rem;
     font-weight: 600;
-    color: #475569 !important;
-    margin-bottom: 0.3rem;
+    color: #64748b !important;
+    margin-top: 0.15rem;
     letter-spacing: 0.025em;
   }
 
   .rep-doc-title {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    margin-top: 0.2rem;
     font-weight: 800;
     color: var(--univ-primario, #7e1927) !important;
     text-transform: uppercase;
@@ -1846,7 +1848,8 @@ input[type="number"],
   }
 
   .rep-header-meta {
-    font-size: 0.725rem;
+    font-size: 0.7rem;
+    min-width: 9.5rem;
     color: #334155 !important;
     text-align: right;
     line-height: 1.4;
@@ -1864,7 +1867,7 @@ input[type="number"],
   .rep-grades-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
     font-size: 0.8rem;
   }
 
@@ -1932,8 +1935,8 @@ input[type="number"],
     border: 1px solid var(--univ-secundario, #0f2742);
     border-left: 4px solid var(--univ-primario, #7e1927);
     border-radius: 2px;
-    padding: 0.75rem 0.9rem;
-    margin-bottom: 1.15rem;
+    padding: 0.65rem 0.9rem;
+    margin-bottom: 0.85rem;
     background: #f8fafc !important;
   }
 
@@ -1977,7 +1980,7 @@ input[type="number"],
 
   .rep-scenarios-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.5rem;
     border-top: 1px dashed #cbd5e1;
     padding-top: 0.5rem;
@@ -1997,14 +2000,14 @@ input[type="number"],
 
   /* Pie y Firmas */
   .rep-footer-block {
-    margin-top: 1.25rem;
+    margin-top: 0.6rem;
   }
 
   .rep-disclaimer {
     font-size: 0.65rem;
     color: #64748b !important;
     line-height: 1.35;
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.5rem;
     text-align: justify;
   }
 
@@ -2022,8 +2025,8 @@ input[type="number"],
 
   .rep-sig-line {
     border-bottom: 1px solid #000000;
-    margin-bottom: 0.35rem;
-    height: 30px;
+    margin-bottom: 0.3rem;
+    height: 26px;
   }
 
   .rep-sig-item span {
@@ -2040,16 +2043,108 @@ input[type="number"],
     color: #cbd5e1 !important;
   }
 
-  .rep-stamp-box {
-    border: 1.5px dashed var(--univ-primario, #7e1927);
-    padding: 0.35rem 0.75rem;
-    text-align: center;
+  .rep-generated {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    align-items: flex-end;
+    gap: 0.1rem;
     font-size: 0.625rem;
-    font-weight: 700;
-    color: var(--univ-primario, #7e1927) !important;
-    letter-spacing: 0.05em;
+    color: #64748b !important;
+  }
+
+  .rep-sig-name {
+    display: block;
+    font-size: 0.75rem;
+    color: #0f172a !important;
+    min-height: 1em;
+  }
+
+  .rep-muted {
+    color: #64748b !important;
+    font-weight: 500;
+    font-size: 0.9em;
+  }
+
+  /* Secciones que no deben partirse entre páginas */
+  .rep-block,
+  .rep-diagnosis-card,
+  .rep-footer-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .rep-diag-score-block {
+    text-align: right;
+  }
+
+  .rep-chart {
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+    padding: 0.35rem 0.25rem 0.1rem;
+  }
+
+  .rep-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .rep-chart-caption {
+    font-size: 0.65rem;
+    color: #64748b !important;
+    margin: 0.25rem 0 0.6rem;
+  }
+
+  .rep-sem-table {
+    font-size: 0.725rem;
+  }
+
+  .rep-sem-table .rep-diag-badge {
+    white-space: nowrap;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.35rem;
+  }
+
+  .rep-td-docente {
+    font-size: 0.7rem;
+    line-height: 1.3;
+  }
+
+  /* Condición con color según el estado (siempre acompañado del texto) */
+  .rep-diag-badge.aprobado {
+    color: #166534 !important;
+    border-color: #16a34a;
+    background: #f0fdf4 !important;
+  }
+
+  .rep-diag-badge.accesible {
+    color: #1e40af !important;
+    border-color: #3b82f6;
+    background: #eff6ff !important;
+  }
+
+  .rep-diag-badge.moderado {
+    color: #854d0e !important;
+    border-color: #ca8a04;
+    background: #fefce8 !important;
+  }
+
+  .rep-diag-badge.exigente,
+  .rep-diag-badge.critico {
+    color: #9a3412 !important;
+    border-color: #ea580c;
+    background: #fff7ed !important;
+  }
+
+  .rep-diag-badge.desaprobado {
+    color: #991b1b !important;
+    border-color: #dc2626;
+    background: #fef2f2 !important;
+  }
+
+  .rep-diag-badge.sin_datos {
+    color: #475569 !important;
+    border-color: #94a3b8;
+    background: #f8fafc !important;
   }
 }

@@ -391,7 +391,7 @@
             </section>
         </main>
 
-        <!-- Documento de Reporte Oficial para Impresión / PDF -->
+        <!-- Reporte personal de simulación para impresión / PDF -->
         <div id="documento-reporte-pdf" class="academic-report-sheet" aria-hidden="true">
             <header class="rep-header">
                 <div class="rep-crest-block">
@@ -399,50 +399,54 @@
                 </div>
                 <div class="rep-header-info">
                     <h2 class="rep-inst-name" id="rep-univ-nombre">UNIVERSIDAD</h2>
-                    <h3 class="rep-inst-sub">Reporte personal de simulación académica</h3>
-                    <h4 class="rep-doc-title">FICHA TÉCNICA DE EVALUACIÓN Y PROYECCIÓN PONDERADA</h4>
+                    <h4 class="rep-doc-title">Ficha de Simulación de Asignatura</h4>
+                    <h3 class="rep-inst-sub">Reporte personal del estudiante · Documento no oficial</h3>
                 </div>
                 <div class="rep-header-meta">
                     <div><strong>Fecha:</strong> <span id="rep-fecha-emision">--</span></div>
-                    <div><strong>Documento:</strong> <span id="rep-codigo-doc">--</span></div>
+                    <div><strong>N.º:</strong> <span id="rep-codigo-doc">--</span></div>
                 </div>
             </header>
 
             <div class="rep-rule"></div>
 
-            <section class="rep-course-details">
+            <section class="rep-block">
                 <table class="rep-meta-table">
                     <tr>
-                        <th style="width: 18%;">Asignatura:</th>
-                        <td style="width: 42%;"><strong id="rep-curso-nombre">--</strong></td>
-                        <th style="width: 20%;">Código Curricular:</th>
-                        <td style="width: 20%;"><span id="rep-curso-codigo">--</span></td>
+                        <th style="width: 17%;">Estudiante:</th>
+                        <td style="width: 33%;"><strong id="rep-estudiante">--</strong></td>
+                        <th style="width: 19%;">Nota aprobatoria:</th>
+                        <td style="width: 31%;"><strong id="rep-nota-aprobatoria">--</strong> <span class="rep-muted" id="rep-nota-aprobatoria-fuente">(fijada por la universidad)</span></td>
                     </tr>
                     <tr>
+                        <th>Asignatura:</th>
+                        <td><strong id="rep-curso-nombre">--</strong></td>
+                        <th>Meta personal:</th>
+                        <td><strong id="rep-curso-meta">--</strong> <span class="rep-muted">(escala 0 a 20)</span></td>
+                    </tr>
+                    <tr>
+                        <th>Código:</th>
+                        <td><span id="rep-curso-codigo">--</span></td>
                         <th>Créditos:</th>
-                        <td><span id="rep-curso-creditos">--</span> créditos académicos</td>
-                        <th>Meta Personal:</th>
-                        <td><strong id="rep-curso-meta">10.50</strong> (Escala 0 a 20)</td>
+                        <td><span id="rep-curso-creditos">--</span> créditos</td>
                     </tr>
                     <tr>
                         <th>Docente:</th>
-                        <td><span id="rep-curso-profesor">--</span></td>
-                        <th>Valoración del Docente:</th>
-                        <td><span id="rep-curso-profesor-estrellas">--</span></td>
+                        <td colspan="3"><span id="rep-curso-profesor">--</span> <span id="rep-curso-profesor-estrellas"></span></td>
                     </tr>
                 </table>
             </section>
 
-            <section class="rep-table-section">
-                <div class="rep-section-tag">REGISTRO DE EVALUACIONES CONTINUAS Y PARCIALES</div>
+            <section class="rep-block rep-table-section">
+                <div class="rep-section-tag">Registro de evaluaciones</div>
                 <table class="rep-grades-table">
                     <thead>
                         <tr>
-                            <th style="width: 14%;">Fase / Unidad</th>
-                            <th style="width: 36%;">Evaluación Académica</th>
-                            <th style="width: 16%; text-align: center;">Ponderación (%)</th>
-                            <th style="width: 16%; text-align: center;">Calificación (0-20)</th>
-                            <th style="width: 18%; text-align: right;">Aporte Ponderado</th>
+                            <th style="width: 15%;">Fase</th>
+                            <th style="width: 35%;">Evaluación</th>
+                            <th style="width: 13%; text-align: center;">Peso</th>
+                            <th style="width: 15%; text-align: center;">Nota (0–20)</th>
+                            <th style="width: 22%; text-align: right;">Aporte a la nota final</th>
                         </tr>
                     </thead>
                     <tbody id="rep-tabla-cuerpo">
@@ -450,7 +454,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="rep-total-row">
-                            <td colspan="2"><strong>COBERTURA EVALUATIVA TOTAL</strong></td>
+                            <td colspan="2"><strong>Total</strong></td>
                             <td id="rep-total-pesos-td" style="text-align: center;"><strong>100%</strong></td>
                             <td colspan="2" id="rep-total-aporte-td" style="text-align: right;"><strong>0.00 / 20.00</strong></td>
                         </tr>
@@ -458,16 +462,16 @@
                 </table>
             </section>
 
-            <section class="rep-diagnosis-section">
-                <div class="rep-section-tag">DICTAMEN ACADÉMICO Y DIAGNÓSTICO PROYECTADO</div>
+            <section class="rep-block rep-diagnosis-section">
+                <div class="rep-section-tag">Diagnóstico proyectado</div>
                 <div class="rep-diagnosis-card">
                     <div class="rep-diag-header">
                         <div>
-                            <span class="rep-diag-lbl">Condición Proyectada:</span>
+                            <span class="rep-diag-lbl">Condición:</span>
                             <span class="rep-diag-badge" id="rep-diag-condicion">--</span>
                         </div>
-                        <div>
-                            <span class="rep-diag-lbl">Calificación requerida en evaluaciones pendientes:</span>
+                        <div class="rep-diag-score-block">
+                            <span class="rep-diag-lbl" id="rep-diag-nota-req-lbl">Resultado:</span>
                             <span class="rep-diag-score" id="rep-diag-nota-req">--</span>
                         </div>
                     </div>
@@ -475,33 +479,44 @@
 
                     <div class="rep-scenarios-row">
                         <div class="rep-scenario-cell">
-                            <span>Puntaje Acumulado Actual:</span>
+                            <span>Puntaje acumulado</span>
                             <strong id="rep-scen-acumulado">--</strong>
                         </div>
                         <div class="rep-scenario-cell">
-                            <span>Piso Mínimo Garantizado (Nota 00):</span>
+                            <span>Promedio parcial</span>
+                            <strong id="rep-scen-parcial">--</strong>
+                        </div>
+                        <div class="rep-scenario-cell">
+                            <span>Piso (sacando 00)</span>
                             <strong id="rep-scen-minimo">--</strong>
                         </div>
                         <div class="rep-scenario-cell">
-                            <span>Techo Máximo Alcanzable (Nota 20):</span>
+                            <span>Techo (sacando 20)</span>
                             <strong id="rep-scen-maximo">--</strong>
                         </div>
                     </div>
                 </div>
             </section>
 
+            <section class="rep-block" id="rep-seccion-grafico">
+                <div class="rep-section-tag">Escenarios de nota final</div>
+                <div class="rep-chart" id="rep-grafico"></div>
+                <p class="rep-chart-caption" id="rep-grafico-leyenda">Nota final según el promedio que se obtenga en las evaluaciones pendientes.</p>
+            </section>
+
             <footer class="rep-footer-block">
                 <p class="rep-disclaimer">
-                    <strong>AVISO NORMATIVO:</strong> Documento emitido con fines exclusivos de proyección y planificación curricular del estudiante. No es un documento oficial y no sustituye las actas ni los registros académicos emitidos por la universidad.
+                    <strong>Nota:</strong> Documento personal generado por el estudiante con fines de planificación académica. No es un documento oficial de la universidad y no sustituye sus actas ni registros académicos.
                 </p>
                 <div class="rep-signatures">
                     <div class="rep-sig-item">
                         <div class="rep-sig-line"></div>
-                        <span>Firma del Estudiante</span>
+                        <strong class="rep-sig-name" id="rep-firma-nombre"></strong>
+                        <span>Firma del estudiante</span>
                     </div>
-                    <div class="rep-stamp-box">
-                        <span>SISTEMA DE GESTIÓN ACADÉMICA</span>
-                        <span>REGISTRO INFORMATIVO VÁLIDO</span>
+                    <div class="rep-generated">
+                        <span>Generado con Gestor Académico</span>
+                        <span id="rep-generado-fecha">--</span>
                     </div>
                 </div>
             </footer>

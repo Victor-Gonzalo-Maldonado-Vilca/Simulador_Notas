@@ -110,7 +110,7 @@
                 </div>
                 <div class="metric-data">
                     <span class="global-metric-val" id="global-promedio-ponderado">0.00</span>
-                    <span class="global-metric-label">Ponderado Semestral</span>
+                    <span class="global-metric-label">Acumulado Ponderado</span>
                 </div>
             </div>
 
@@ -346,7 +346,7 @@
             </div>
         </div>
 
-        <!-- Documento Imprimible del Consolidado Semestral en PDF -->
+        <!-- Consolidado semestral para impresión / PDF -->
         <div id="reporte-semestral-pdf" class="academic-report-sheet" aria-hidden="true">
             <header class="rep-header">
                 <div class="rep-crest-block">
@@ -354,65 +354,73 @@
                 </div>
                 <div class="rep-header-info">
                     <h2 class="rep-inst-name" id="rep-sem-univ-nombre">UNIVERSIDAD</h2>
-                    <h3 class="rep-inst-sub">Reporte personal de seguimiento académico</h3>
-                    <h4 class="rep-doc-title">CONSOLIDADO INFORMATIVO DE ASIGNATURAS Y RENDIMIENTO SEMESTRAL</h4>
+                    <h4 class="rep-doc-title">Consolidado Semestral de Asignaturas</h4>
+                    <h3 class="rep-inst-sub">Reporte personal del estudiante · Documento no oficial</h3>
                 </div>
                 <div class="rep-header-meta">
                     <div><strong>Fecha:</strong> <span id="rep-sem-fecha">--</span></div>
-                    <div><strong>Documento:</strong> <span id="rep-sem-codigo">--</span></div>
+                    <div><strong>N.º:</strong> <span id="rep-sem-codigo">--</span></div>
                 </div>
             </header>
 
             <div class="rep-rule"></div>
 
-            <section class="rep-sem-kpis">
+            <section class="rep-block rep-sem-kpis">
                 <table class="rep-meta-table">
                     <tr>
-                        <th style="width: 25%;">Total Asignaturas:</th>
-                        <td style="width: 25%;"><strong id="rep-sem-total-cursos">0</strong></td>
-                        <th style="width: 25%;">Total Créditos Matriculados:</th>
-                        <td style="width: 25%;"><strong id="rep-sem-total-creditos">0</strong> créditos</td>
+                        <th style="width: 20%;">Estudiante:</th>
+                        <td style="width: 30%;"><strong id="rep-sem-estudiante">--</strong></td>
+                        <th style="width: 22%;">Nota aprobatoria:</th>
+                        <td style="width: 28%;"><strong id="rep-sem-nota-aprobatoria">--</strong> <span class="rep-muted" id="rep-sem-nota-fuente">(fijada por la universidad)</span></td>
                     </tr>
                     <tr>
-                        <th>Ponderado Semestral Proyectado:</th>
-                        <td><strong id="rep-sem-promedio-global">0.00 / 20.00</strong></td>
-                        <th>Metas Aseguradas / En Riesgo:</th>
-                        <td><span id="rep-sem-resumen-estados">--</span></td>
+                        <th>Asignaturas:</th>
+                        <td><strong id="rep-sem-total-cursos">0</strong> (<span id="rep-sem-total-creditos">0</span> créditos)</td>
+                        <th>Acumulado ponderado:</th>
+                        <td><strong id="rep-sem-promedio-global">0.00 / 20.00</strong> <span class="rep-muted">(por créditos)</span></td>
+                    </tr>
+                    <tr>
+                        <th>Estado:</th>
+                        <td colspan="3"><span id="rep-sem-resumen-estados">--</span></td>
                     </tr>
                 </table>
             </section>
 
-            <section class="rep-table-section">
-                <div class="rep-section-tag">CONSOLIDADO CURRICULAR POR ASIGNATURA</div>
-                <table class="rep-grades-table">
+            <section class="rep-block rep-table-section">
+                <div class="rep-section-tag">Detalle por asignatura</div>
+                <table class="rep-grades-table rep-sem-table">
                     <thead>
                         <tr>
-                            <th style="width: 12%;">Código</th>
-                            <th style="width: 32%;">Nombre de la Asignatura</th>
-                            <th style="width: 10%; text-align: center;">Créditos</th>
-                            <th style="width: 14%; text-align: center;">Progreso</th>
-                            <th style="width: 14%; text-align: center;">Prom. Acum.</th>
-                            <th style="width: 18%; text-align: right;">Condición</th>
+                            <th style="width: 10%;">Código</th>
+                            <th style="width: 21%;">Asignatura</th>
+                            <th style="width: 19%;">Docente</th>
+                            <th style="width: 6%; text-align: center;">Cr.</th>
+                            <th style="width: 11%; text-align: center;">Progreso</th>
+                            <th style="width: 9%; text-align: center;">Acum.</th>
+                            <th style="width: 9%; text-align: center;">Parcial</th>
+                            <th style="width: 15%; text-align: right;">Condición</th>
                         </tr>
                     </thead>
                     <tbody id="rep-sem-tabla-cuerpo">
                         <!-- Generado dinámicamente -->
                     </tbody>
                 </table>
+                <p class="rep-chart-caption">Acum.: puntaje acumulado sobre la nota final. Parcial: promedio solo en lo ya evaluado.</p>
             </section>
 
             <footer class="rep-footer-block">
                 <p class="rep-disclaimer">
-                    <strong>AVISO NORMATIVO:</strong> Este consolidado es un reporte de proyección curricular generado con fines de seguimiento académico personal. No es un documento oficial y no sustituye las actas ni los registros académicos emitidos por la universidad.
+                    <strong>Nota:</strong> Documento personal generado por el estudiante con fines de planificación académica. No es un documento oficial de la universidad y no sustituye sus actas ni registros académicos.
                 </p>
                 <div class="rep-signatures">
                     <div class="rep-sig-item">
                         <div class="rep-sig-line"></div>
-                        <span>Firma del Estudiante</span>
+                        <strong class="rep-sig-name" id="rep-sem-firma-nombre"></strong>
+                        <span>Firma del estudiante</span>
                     </div>
-                    <div class="rep-stamp-box">
-                        <span>SISTEMA DE GESTIÓN ACADÉMICA</span>
-                        <span>CONSOLIDADO INFORMATIVO VÁLIDO</span>
+                    <div class="rep-generated">
+                        <span>Generado con Gestor Académico</span>
+                        <span id="rep-sem-generado-fecha">--</span>
                     </div>
                 </div>
             </footer>

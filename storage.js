@@ -2,12 +2,6 @@ const STORAGE_KEY = 'unsa_simulador_cursos_v1';
 const ACTIVE_COURSE_KEY = 'unsa_simulador_curso_activo_id';
 const PERFIL_KEY = 'unsa_simulador_perfil_v1';
 
-// ==========================================================================
-// CATÁLOGO DE UNIVERSIDADES
-// Nota aprobatoria fija (escala 0-20) y colores usados en la interfaz y los reportes.
-// Verifica cada nota con el reglamento de evaluación vigente de la universidad;
-// los colores son aproximaciones de la identidad visual de cada institución.
-// ==========================================================================
 const UNIVERSIDAD_POR_DEFECTO = 'unsa';
 
 const UNIVERSIDADES = {
@@ -178,6 +172,19 @@ const CURSOS_DEMO = [
 function escaparHtml(texto) {
     const entidades = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     return String(texto ?? '').replace(/[&<>"']/g, c => entidades[c]);
+}
+
+/**
+ * Fecha corta para los reportes: "10/10/2026, 03:10 p. m."
+ */
+function formatearFechaReporte(fecha = new Date()) {
+    return fecha.toLocaleString('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 const MAX_ESTRELLAS = 5;

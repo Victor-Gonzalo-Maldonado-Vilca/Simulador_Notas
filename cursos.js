@@ -51,8 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('article');
             card.className = 'course-card';
 
-            const codigo = curso.codigo ? curso.codigo : 'UNSA';
-            const creditos = curso.creditos ? `${curso.creditos} Créditos` : '3 Créditos';
+            const codigo = escaparHtml(curso.codigo ? curso.codigo : 'UNSA');
+            const creditos = escaparHtml(curso.creditos ? `${curso.creditos} Créditos` : '3 Créditos');
+            const nombre = escaparHtml(curso.nombre);
+            const idSeguro = escaparHtml(curso.id);
 
             card.innerHTML = `
                 <div class="course-card-header">
@@ -60,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="course-code-badge">${codigo}</span>
                         <span class="course-credits-badge">${creditos}</span>
                     </div>
-                    <button type="button" class="btn-icon-danger" title="Eliminar Asignatura" data-id="${curso.id}">
+                    <button type="button" class="btn-icon-danger" title="Eliminar Asignatura" data-id="${idSeguro}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -68,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </button>
                 </div>
 
-                <h3 class="course-title">${curso.nombre}</h3>
+                <h3 class="course-title">${nombre}</h3>
 
                 <!-- Estado Diagnóstico -->
                 <div class="course-status-row">
@@ -98,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span>Acumulado: <strong>${resumen.promedioActual.toFixed(2)}</strong></span>
                         <span>Techo: <strong>${resumen.mejorCaso.toFixed(2)}</strong></span>
                     </div>
-                    <button type="button" class="btn btn-primary btn-sm btn-abrir-simulador" data-id="${curso.id}">
+                    <button type="button" class="btn btn-primary btn-sm btn-abrir-simulador" data-id="${idSeguro}">
                         Simular Notas
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -249,9 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = calcularResumenCurso(c);
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${c.codigo || 'UNSA'}</strong></td>
-                <td><strong>${c.nombre}</strong></td>
-                <td style="text-align: center;">${c.creditos || 3}</td>
+                <td><strong>${escaparHtml(c.codigo || 'UNSA')}</strong></td>
+                <td><strong>${escaparHtml(c.nombre)}</strong></td>
+                <td style="text-align: center;">${escaparHtml(c.creditos || 3)}</td>
                 <td style="text-align: center;">${res.pctEvaluado}% (${res.notasLlenadas}/6)</td>
                 <td style="text-align: center; font-weight: 700;">${res.promedioActual.toFixed(2)}</td>
                 <td style="text-align: right;"><span class="rep-diag-badge ${res.badgeClass}">${res.badgeTexto}</span></td>

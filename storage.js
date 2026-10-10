@@ -82,6 +82,14 @@ const CURSOS_DEMO = [
 ];
 
 /**
+ * Escapa caracteres especiales para insertar texto de usuario en HTML de forma segura.
+ */
+function escaparHtml(texto) {
+    const entidades = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(texto ?? '').replace(/[&<>"']/g, c => entidades[c]);
+}
+
+/**
  * Obtiene todos los cursos guardados en LocalStorage.
  * Si no existen, inicializa los cursos de demostración.
  */

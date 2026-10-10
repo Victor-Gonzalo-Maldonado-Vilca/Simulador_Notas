@@ -342,7 +342,7 @@ function calcularOSimular(mostrarAlertas = true) {
             estadoElement.classList.add('desaprobado');
         }
 
-        resultadoMensaje.innerHTML = `Evaluación completa de <strong>${cursoActual ? cursoActual.nombre : 'la asignatura'}</strong>. El promedio final ponderado obtenido es <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
+        resultadoMensaje.innerHTML = `Evaluación completa de <strong>${cursoActual ? escaparHtml(cursoActual.nombre) : 'la asignatura'}</strong>. El promedio final ponderado obtenido es <strong>${promedio.toFixed(2)}</strong> sobre 20.`;
 
         metricasSecundarias.style.display = 'grid';
         metricAcumulado.textContent = promedio.toFixed(2);
@@ -391,7 +391,7 @@ function calcularOSimular(mostrarAlertas = true) {
         resultadoElement.textContent = "0.00";
         estadoElement.textContent = "Meta asegurada (Aprobación garantizada)";
         estadoElement.classList.add('aprobado');
-        resultadoMensaje.innerHTML = `Con las calificaciones registradas en <strong>${cursoActual ? cursoActual.nombre : 'la asignatura'}</strong>, el puntaje acumulado es suficiente para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>. Tu promedio final mínimo garantizado es <strong>${peorCasoMin.toFixed(2)}</strong>.`;
+        resultadoMensaje.innerHTML = `Con las calificaciones registradas en <strong>${cursoActual ? escaparHtml(cursoActual.nombre) : 'la asignatura'}</strong>, el puntaje acumulado es suficiente para alcanzar la meta de <strong>${notaMeta.toFixed(1)}</strong>. Tu promedio final mínimo garantizado es <strong>${peorCasoMin.toFixed(2)}</strong>.`;
     } else if (notaRequerida <= 10.5) {
         resultadoElement.textContent = notaRequerida.toFixed(2);
         estadoElement.textContent = `Exigencia regular (${notaRequerida.toFixed(2)})`;
